@@ -61,3 +61,4 @@ Expects a AMQP connection like that from `amqp-connection-manager`. The module w
 
 Returns an entry. Will load it from cache, if possible. Will cache it if loaded from Data Manager.
 The optional `transformFunction` can be used to only cache and return a part of the entry. Note that this transform function should be the same for each call to a specific model. It may be synchronous or returning a Promise.
+The entry will only ever contain the values (not an SDK Entry object).
