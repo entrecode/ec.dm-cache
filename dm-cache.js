@@ -30,17 +30,15 @@ function updateEntryInCache(message) {
       return transformationFunction(event.data);
     })
     .then((data) => {
-      return cache.get(event.modelTitle + event.entryID)
-      .then((cachedData) => {
-        if (!cachedData) { // don't cache if not requested yet
-          return data;
-        }
-        Object.assign(cachedData, data); // update cached object
-        if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
-          cachedData._entryTitle = cachedData[cachedData._modelTitleField];
-        }
-        return cache.put(event.modelTitle + event.entryID, cachedData);
-      })
+      const cachedData = cache.get(event.modelTitle + event.entryID);
+      if (!cachedData) { // don't cache if not requested yet
+        return data;
+      }
+      Object.assign(cachedData, data); // update cached object
+      if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
+        cachedData._entryTitle = cachedData[cachedData._modelTitleField];
+      }
+      return cache.put(event.modelTitle + event.entryID, cachedData);
     })
   })
   .then(() => amqp.channel.ack(message))
