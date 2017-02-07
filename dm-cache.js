@@ -29,16 +29,18 @@ function updateEntryInCache(message) {
       }
       return transformationFunction(event.data);
     })
-    .then(data => [data, cache.get(event.modelTitle + event.entryID)])
-    .then(([data, cachedData]) => {
-      if (!cachedData) { // don't cache if not requested yet
-        return data;
-      }
-      Object.assign(cachedData, data); // update cached object
-      if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
-        cachedData._entryTitle = cachedData[cachedData._modelTitleField];
-      }
-      return cache.put(event.modelTitle + event.entryID, cachedData);
+    .then((data) => {
+      return cache.get(event.modelTitle + event.entryID)
+      .then((cachedData) => {
+        if (!cachedData) { // don't cache if not requested yet
+          return data;
+        }
+        Object.assign(cachedData, data); // update cached object
+        if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
+          cachedData._entryTitle = cachedData[cachedData._modelTitleField];
+        }
+        return cache.put(event.modelTitle + event.entryID, cachedData);
+      })
     })
   })
   .then(() => amqp.channel.ack(message))
@@ -84,13 +86,13 @@ const dmCache = {
     });
   },
 
-/**
- * load an entry from datamanager
- * @param  {String} modelTitle        Title of the model to get the entry from
- * @param  {String} entryID           ID of the entry to get
- * @param  {Function} [transformFunction] A function to be applied to the entry
- * @return {Promise.<Entry>}         Entry Value
- */
+  /**
+   * load an entry from datamanager
+   * @param  {String} modelTitle        Title of the model to get the entry from
+   * @param  {String} entryID           ID of the entry to get
+   * @param  {Function} [transformFunction] A function to be applied to the entry
+   * @return {Promise.<Entry>}         Entry Value
+   */
   getEntry(modelTitle, entryID, transformFunction) {
     return Promise.resolve()
     .then(() => cache.get(modelTitle + entryID))
