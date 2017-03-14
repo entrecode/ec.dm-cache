@@ -110,7 +110,7 @@ const dmCache = {
       if (typeof entryID !== 'string' || !entryID) {
         throw new Error(`entryID '${entryID}' given to dmCache.getEntry is invalid!`);
       }
-      if (transformFunction && typeof entryID !== 'function') {
+      if (transformFunction && typeof transformFunction !== 'function') {
         throw new Error(`transformFunction given to dmCache.getEntry is invalid!`);
       }
       return cache.get(modelTitle + entryID);
