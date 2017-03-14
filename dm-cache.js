@@ -21,13 +21,23 @@ function updateEntryInCache(message) {
       return cache.del(event.modelTitle + event.entryID);
     }
     logger.debug(`updated ${event.modelTitle}/${event.entryID} in cache`)
-    return Promise.resolve()
-    .then(() => {
+    return Promise.resolve(event.data)
+    .then((data) => {
+      return Object.assign(data, {
+        id: event.entryID,
+        _id: event.entryID,
+        modified: event.modified,
+        _modified: event.modified,
+        _creator: event.user.userType === 'ecUser' ? null : event.user.accountID,
+        private: event.private
+      });
+    })
+    .then((data) => {
       const transformationFunction = watchedModels.get(event.modelTitle);
       if (!transformationFunction) {
-        return event.data;
+        return data;
       }
-      return transformationFunction(event.data);
+      return transformationFunction(data);
     })
     .then((data) => {
       const cachedData = cache.get(event.modelTitle + event.entryID);
@@ -93,7 +103,18 @@ const dmCache = {
    */
   getEntry(modelTitle, entryID, transformFunction) {
     return Promise.resolve()
-    .then(() => cache.get(modelTitle + entryID))
+    .then(() => {
+      if (typeof modelTitle !== 'string' || !modelTitle) {
+        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
+      }
+      if (typeof entryID !== 'string' || !entryID) {
+        throw new Error(`entryID '${entryID}' given to dmCache.getEntry is invalid!`);
+      }
+      if (transformFunction && typeof entryID !== 'function') {
+        throw new Error(`transformFunction given to dmCache.getEntry is invalid!`);
+      }
+      return cache.get(modelTitle + entryID);
+    })
     .then((cachedEntry) => {
       if (cachedEntry) {
         logger.debug(`loaded ${modelTitle}/${entryID} from cache`);
