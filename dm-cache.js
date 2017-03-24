@@ -2,7 +2,6 @@
 
 const cache = require('memory-cache');
 const DataManager = require('ec.datamanager');
-const logger = require('ec.logger');
 
 let dm;
 const amqp = {
@@ -17,10 +16,10 @@ function updateEntryInCache(message) {
     const event = JSON.parse(message.content.toString());
     const type = message.properties.type;
     if (type === 'entryDeleted') {
-      logger.debug(`deleted ${event.modelTitle}/${event.entryID} from cache`)
+      console.log(`deleted ${event.modelTitle}/${event.entryID} from cache`)
       return cache.del(event.modelTitle + event.entryID);
     }
-    logger.debug(`updated ${event.modelTitle}/${event.entryID} in cache`)
+    console.log(`updated ${event.modelTitle}/${event.entryID} in cache`)
     return Promise.resolve(event.data)
     .then((data) => {
       return Object.assign(data, {
@@ -53,7 +52,7 @@ function updateEntryInCache(message) {
   })
   .then(() => amqp.channel.ack(message))
   .catch((e) => {
-    logger.error(e);
+    console.error(e);
     amqp.channel.nack(message);
   });
 }
@@ -63,7 +62,7 @@ function watchModel(modelTitle, transformFunction) {
     amqp.channel.bindQueue(amqp.queue, 'publicAPI', `${dm.id}.${modelTitle}.#`);
     watchedModels.set(modelTitle, transformFunction);
   } else {
-    logger.warn('No AMQP connection given to dm-cache! Deleting cached entries after 5 minutes');
+    console.warn('No AMQP connection given to dm-cache! Deleting cached entries after 5 minutes');
   }
 }
 
@@ -89,7 +88,7 @@ const dmCache = {
             amqp.queue = queue.queue;
           }),
         ])
-        .catch(logger.error);
+        .catch(console.error);
       },
     });
   },
@@ -117,7 +116,6 @@ const dmCache = {
     })
     .then((cachedEntry) => {
       if (cachedEntry) {
-        logger.debug(`loaded ${modelTitle}/${entryID} from cache`);
         return cachedEntry;
       }
       if (!dm) {
@@ -132,7 +130,6 @@ const dmCache = {
       .then((entry) => {
         const cacheTime = (amqp.channel && amqp.queue ? undefined : 5 * 60 * 1000);
         cache.put(modelTitle + entryID, entry, cacheTime);
-        logger.debug(`loaded ${modelTitle}/${entryID} from dm and cache now`);
         return entry;
       });
     });
