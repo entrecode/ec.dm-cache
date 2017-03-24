@@ -1,6 +1,6 @@
 {
   "name": "ec.dm-cache",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Module for Node.js to cache data manager entries with live updating/invalidation using AMQP. By entrecode.",
   "main": "dm-cache.js",
   "license": "none",
@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "ec.datamanager": "^0.10.1",
-    "ec.logger": "git+ssh://git@stash.entrecode.de:7999/cms/ec.logger.git#0.2.0",
     "memory-cache": "^0.1.6"
   }
 }
