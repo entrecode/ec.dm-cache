@@ -55,7 +55,12 @@ Give a ready SDK instance to use
 
 ### `dmCache.setRabbitMQConnection(connection)`
 
-Expects a AMQP connection like that from `amqp-connection-manager`. The module will create an own channel with it.
+Expects an AMQP connection like that from `amqp-connection-manager`. The module will create an own channel with it.
+If you want to re-use an existing channel, use `dmCache.setRabbitMQChannel(channel)`.
+
+### `dmCache.setRabbitMQChannel(channel)`
+
+Expects an AMQP channel like that from `amqp-connection-manager`. If you don't have a channel, use `dmCache.setRabbitMQConnection(connection)`.
 
 ### `dmCache.getEntry(modelTitle, entryID[, transformFunction])`
 
@@ -64,3 +69,12 @@ The optional `transformFunction` can be used to only cache and return a part of 
 The entry will only ever contain the values (not an SDK Entry object).
 
 Note that model structure changes will not be reflected in the cache, as there are currently no events for that.
+
+### `dmCache.eventEmitter`
+
+An event Emitter you can use to get notified on updates.
+Emitted events:
+
+#### event `updatedCache`, `{ type, model, entryID}`
+`type` is one of `entryUpdated`, `entryDeleted`. `model` is the model title.
+

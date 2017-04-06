@@ -2,6 +2,9 @@
 
 const cache = require('memory-cache');
 const DataManager = require('ec.datamanager');
+const EventEmitter = require('events');
+
+const eventEmitter = new EventEmitter();
 
 let dm;
 const amqp = {
@@ -47,6 +50,7 @@ function updateEntryInCache(message) {
       if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
         cachedData._entryTitle = cachedData[cachedData._modelTitleField];
       }
+      eventEmitter.emit('updatedCache', { type, model: event.modelTitle, entryID: event.entryID});
       return cache.put(event.modelTitle + event.entryID, cachedData);
     })
   })
@@ -67,6 +71,8 @@ function watchModel(modelTitle, transformFunction) {
 }
 
 const dmCache = {
+  eventEmitter,
+
   setDataManager(dataManagerURL, accessToken) {
     dm = new DataManager({
       url: dataManagerURL,
@@ -91,6 +97,16 @@ const dmCache = {
         .catch(console.error);
       },
     });
+  },
+
+  setRabbitMQChannel(channel) {
+    channel.assertQueue('', { exclusive: true })
+    .then((queue) => {
+      channel.consume(queue.queue, updateEntryInCache);
+      amqp.channel = channel;
+      amqp.queue = queue.queue;
+    })
+    .catch(console.error);
   },
 
   /**
