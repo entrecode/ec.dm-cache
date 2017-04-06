@@ -50,7 +50,7 @@ function updateEntryInCache(message) {
       if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
         cachedData._entryTitle = cachedData[cachedData._modelTitleField];
       }
-      eventEmitter.emit('updatedCache', { type, model: event.modelTitle, entryID: event.entryID});
+      eventEmitter.emit('updatedCache', { type, model: event.modelTitle, entryID: event.entryID });
       return cache.put(event.modelTitle + event.entryID, cachedData);
     })
   })
@@ -63,6 +63,7 @@ function updateEntryInCache(message) {
 
 function watchModel(modelTitle, transformFunction) {
   if (amqp.channel && amqp.queue) {
+    console.log(`bound queue to ${dm.id}.${modelTitle}.#`);
     amqp.channel.bindQueue(amqp.queue, 'publicAPI', `${dm.id}.${modelTitle}.#`);
     watchedModels.set(modelTitle, transformFunction);
   } else {
