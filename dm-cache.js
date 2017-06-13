@@ -1,114 +1,11 @@
 'use strict';
+const cache = require('./lib/cache');
+const datamanager = require('./lib/datamanager');
+const eventSource = require('./lib/eventsource');
 
-const cache = require('memory-cache');
-const DataManager = require('ec.datamanager');
-const EventEmitter = require('events');
-
-const eventEmitter = new EventEmitter();
-
-let dm;
-const amqp = {
-  channel: null,
-  queue: null,
-};
-const watchedModels = new Map();
-
-function updateEntryInCache(message) {
-  return Promise.resolve()
-  .then(() => {
-    const event = JSON.parse(message.content.toString());
-    const type = message.properties.type;
-    if (type === 'entryDeleted') {
-      console.log(`deleted ${event.modelTitle}/${event.entryID} from cache`)
-      return cache.del(event.modelTitle + event.entryID);
-    }
-    console.log(`updated ${event.modelTitle}/${event.entryID} in cache`)
-    return Promise.resolve(event.data)
-    .then((data) => {
-      return Object.assign(data, {
-        id: event.entryID,
-        _id: event.entryID,
-        modified: event.modified,
-        _modified: event.modified,
-        _creator: event.user.userType === 'ecUser' ? null : event.user.accountID,
-        private: event.private
-      });
-    })
-    .then((data) => {
-      const transformationFunction = watchedModels.get(event.modelTitle);
-      if (!transformationFunction) {
-        return data;
-      }
-      return transformationFunction(data);
-    })
-    .then((data) => {
-      const cachedData = cache.get(event.modelTitle + event.entryID);
-      if (!cachedData) { // don't cache if not requested yet
-        return data;
-      }
-      Object.assign(cachedData, data); // update cached object
-      if ('_entryTitle' in cachedData && '_modelTitleField' in cachedData) {
-        cachedData._entryTitle = cachedData[cachedData._modelTitleField];
-      }
-      eventEmitter.emit('updatedCache', { type, model: event.modelTitle, entryID: event.entryID });
-      return cache.put(event.modelTitle + event.entryID, cachedData);
-    })
-  })
-  .then(() => amqp.channel.ack(message))
-  .catch((e) => {
-    console.error(e);
-    amqp.channel.nack(message);
-  });
-}
-
-function watchModel(modelTitle, transformFunction) {
-  if (amqp.channel && amqp.queue) {
-    console.log(`bound queue to ${dm.id}.${modelTitle}.#`);
-    amqp.channel.bindQueue(amqp.queue, 'publicAPI', `${dm.id}.${modelTitle}.#`);
-    watchedModels.set(modelTitle, transformFunction);
-  } else {
-    console.warn('No AMQP connection given to dm-cache! Deleting cached entries after 5 minutes');
-  }
-}
 
 const dmCache = {
-  eventEmitter,
-
-  setDataManager(dataManagerURL, accessToken) {
-    dm = new DataManager({
-      url: dataManagerURL,
-      accessToken,
-    });
-  },
-  setDataManagerInstance(dataManagerInstance) {
-    dm = dataManagerInstance;
-  },
-  setRabbitMQConnection(connection) {
-    connection.createChannel({
-      setup(channel) {
-        return Promise.all([
-          channel.assertExchange('publicAPI', 'topic', { durable: true }),
-          channel.assertQueue('', { exclusive: true })
-          .then((queue) => {
-            channel.consume(queue.queue, updateEntryInCache);
-            amqp.channel = channel;
-            amqp.queue = queue.queue;
-          }),
-        ])
-        .catch(console.error);
-      },
-    });
-  },
-
-  setRabbitMQChannel(channel) {
-    channel.assertQueue('', { exclusive: true })
-    .then((queue) => {
-      channel.consume(queue.queue, updateEntryInCache);
-      amqp.channel = channel;
-      amqp.queue = queue.queue;
-    })
-    .catch(console.error);
-  },
+  eventEmitter: eventSource.eventEmitter,
 
   /**
    * load an entry from datamanager
@@ -117,7 +14,7 @@ const dmCache = {
    * @param  {Function} [transformFunction] A function to be applied to the entry
    * @return {Promise.<Entry>}         Entry Value
    */
-  getEntry(modelTitle, entryID, transformFunction) {
+  getEntry(modelTitle, entryID, fields = [], levels = 1, transformFunction) {
     return Promise.resolve()
     .then(() => {
       if (typeof modelTitle !== 'string' || !modelTitle) {
@@ -129,27 +26,59 @@ const dmCache = {
       if (transformFunction && typeof transformFunction !== 'function') {
         throw new Error(`transformFunction given to dmCache.getEntry is invalid!`);
       }
-      return cache.get(modelTitle + entryID);
-    })
-    .then((cachedEntry) => {
-      if (cachedEntry) {
-        return cachedEntry;
-      }
-      if (!dm) {
-        throw new Error('No DataManager instance given to dm-cache');
-      }
-      if (!watchedModels.has(modelTitle)) {
-        watchModel(modelTitle, transformFunction);
-      }
-      return dm.model(modelTitle)
-      .entry(entryID)
-      .then(entry => transformFunction ? transformFunction(entry.value) : entry.value)
-      .then((entry) => {
-        const cacheTime = (amqp.channel && amqp.queue ? undefined : 5 * 60 * 1000);
-        cache.put(modelTitle + entryID, entry, cacheTime);
-        return entry;
+      const fieldsString = fields.length > 0 ? JSON.stringify(fields) : false;
+      const levelsString = levels > 1 ? levels : false;
+      const key = [modelTitle, entryID, fieldsString, levelsString].filter(x => !!x).join('|');
+      return cache.getEntry(key)
+      .then((cachedEntry) => {
+        if (cachedEntry) {
+          return cachedEntry;
+        }
+        return datamanager.getEntry(modelTitle, entryID, { fields, levels })
+        .then((entryResult) => {
+          cache.putEntry(key, modelTitle, entryID, entryResult);
+          eventSource.watchEntry(modelTitle, entryID);
+          if (levels > 1) {
+            datamanager.findLinkedEntries(entryResult)
+            .map((toWatch) => eventSource.watchEntry(...toWatch));
+          }
+          return entryResult;
+        })
+      })
+      .then((result) => {
+        if (transformFunction) {
+          return transformFunction(result);
+        }
+        return result;
       });
-    });
+    })
+  },
+
+  getEntries(modelTitle, options) {
+    return Promise.resolve()
+    .then(() => {
+      if (typeof modelTitle !== 'string' || !modelTitle) {
+        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
+      }
+      const key = `${modelTitle}${JSON.stringify(options)}`;
+      return cache.getEntries(key)
+      .then((cachedEntries) => {
+        if (cachedEntries) {
+          return cachedEntries;
+        }
+        return datamanager.getEntries(modelTitle, options)
+        .then((entriesResult) => {
+          cache.putEntries(key, modelTitle, entriesResult);
+          eventSource.watchModel(modelTitle);
+          return entriesResult;
+        })
+      });
+    })
+  },
+
+  assetHelper(type, assetID, ...params) {
+    // todo
+    return Promise.reject('not implemented');
   },
 };
 
