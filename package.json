@@ -5,12 +5,21 @@
   "main": "dm-cache.js",
   "license": "none",
   "private": true,
+  "scripts": {
+    "coverage": "NODE_ENV=testing istanbul cover _mocha -- --recursive -R dot && open ./coverage/lcov-report/index.html",
+    "test": "NODE_ENV=testing mocha -R spec"
+  },
   "repository": {
     "type": "git",
     "url": "ssh://git@stash.entrecode.de:7999/cms/ec.dm-cache.git"
   },
   "author": "deyhle@entrecode.de",
   "devDependencies": {
+    "chai": "^3.5.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "sinon": "^2.3.4",
+    "sinon-chai": "^2.11.0"
   },
   "dependencies": {
     "ec.datamanager": "^0.11.11",

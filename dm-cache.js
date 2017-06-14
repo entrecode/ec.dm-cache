@@ -1,7 +1,7 @@
 'use strict';
 const cache = require('./lib/cache');
 const datamanager = require('./lib/datamanager');
-const eventSource = require('./lib/eventsource');
+const eventSource = require('./lib/eventsource-amqp');
 
 
 const dmCache = {
