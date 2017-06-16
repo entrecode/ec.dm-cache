@@ -100,6 +100,10 @@ const dmCache = {
     }
   },
 
+  setDataManagerInstance(dataManagerInstance) {
+    datamanager.setDataManagerInstance(dataManagerInstance);
+    eventSource.setDataManagerID(dataManagerInstance.id);
+  },
 };
 
 module.exports = dmCache;
