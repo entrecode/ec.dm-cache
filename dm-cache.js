@@ -3,6 +3,8 @@ const cache = require('./lib/cache');
 const datamanager = require('./lib/datamanager');
 const eventSource = require('./lib/eventsource-amqp');
 
+let appendSource = false;
+
 const dmCache = {
   eventEmitter: eventSource.eventEmitter,
 
@@ -31,6 +33,9 @@ const dmCache = {
       return cache.getEntry(key)
       .then((cachedEntry) => {
         if (cachedEntry) {
+          if (appendSource) {
+            cachedEntry.dmCacheHitFrom = 'cache';
+          }
           return cachedEntry;
         }
         return datamanager.getEntry(modelTitle, entryID, { fields, levels })
@@ -40,6 +45,9 @@ const dmCache = {
           if (levels > 1) {
             datamanager.findLinkedEntries(entryResult)
             .map((toWatch) => eventSource.watchEntry(...toWatch));
+          }
+          if (appendSource) {
+            entryResult.dmCacheHitFrom = 'source';
           }
           return entryResult;
         })
@@ -63,12 +71,18 @@ const dmCache = {
       return cache.getEntries(key)
       .then((cachedEntries) => {
         if (cachedEntries) {
+          if (appendSource) {
+            cachedEntries.dmCacheHitFrom = 'cache';
+          }
           return cachedEntries;
         }
         return datamanager.getEntries(modelTitle, options)
         .then((entriesResult) => {
           cache.putEntries(key, modelTitle, entriesResult);
           eventSource.watchModel(modelTitle);
+          if (appendSource) {
+            entriesResult.dmCacheHitFrom = 'source';
+          }
           return entriesResult;
         })
       });
@@ -80,7 +94,7 @@ const dmCache = {
     return Promise.reject('not implemented');
   },
 
-  setup({ dataManagerInstance, sdkInstance, rabbitMQConnection, rabbitMQChannel }) {
+  setup({ dataManagerInstance, sdkInstance, rabbitMQConnection, rabbitMQChannel, verbose }) {
     if (!dataManagerInstance || (!rabbitMQConnection && !rabbitMQChannel)) {
       throw new Error('missing setup options');
     }
@@ -97,6 +111,9 @@ const dmCache = {
     }
     if (rabbitMQChannel) {
       eventSource.setRabbitMQChannel(rabbitMQChannel);
+    }
+    if (verbose) {
+      appendSource = verbose;
     }
   },
 
