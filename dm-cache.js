@@ -3,7 +3,6 @@ const cache = require('./lib/cache');
 const datamanager = require('./lib/datamanager');
 const eventSource = require('./lib/eventsource-amqp');
 
-
 const dmCache = {
   eventEmitter: eventSource.eventEmitter,
 
@@ -80,6 +79,27 @@ const dmCache = {
     // todo
     return Promise.reject('not implemented');
   },
+
+  setup({ dataManagerInstance, sdkInstance, rabbitMQConnection, rabbitMQChannel }) {
+    if (!dataManagerInstance || (!rabbitMQConnection && !rabbitMQChannel)) {
+      throw new Error('missing setup options');
+    }
+    if (dataManagerInstance) {
+      datamanager.setDataManagerInstance(dataManagerInstance);
+      eventSource.setDataManagerID(dataManagerInstance.id);
+    }
+    if (sdkInstance) {
+      // TODO support for ec.sdk
+      throw new Error('ec.sdk is not yet supported');
+    }
+    if (rabbitMQConnection) {
+      eventSource.setRabbitMQConnection(rabbitMQConnection);
+    }
+    if (rabbitMQChannel) {
+      eventSource.setRabbitMQChannel(rabbitMQChannel);
+    }
+  },
+
 };
 
 module.exports = dmCache;
