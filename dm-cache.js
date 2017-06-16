@@ -58,9 +58,9 @@ const dmCache = {
     return Promise.resolve()
     .then(() => {
       if (typeof modelTitle !== 'string' || !modelTitle) {
-        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
+        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
       }
-      const key = `${modelTitle}${JSON.stringify(options)}`;
+      const key = [modelTitle, JSON.stringify(options)].join('|');
       return cache.getEntries(key)
       .then((cachedEntries) => {
         if (cachedEntries) {
