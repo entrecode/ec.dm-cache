@@ -22,6 +22,7 @@
     "sinon-chai": "^2.11.0"
   },
   "dependencies": {
+    "cache-manager": "^2.4.0",
     "ec.datamanager": "^0.11.11",
     "memory-cache": "^0.1.6"
   }
