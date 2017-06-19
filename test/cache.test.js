@@ -5,13 +5,13 @@ const sinonChai = require('sinon-chai');
 const expect = chai.expect;
 chai.use(sinonChai);
 const eventSource = require('../lib/eventsource-amqp');
-
+const Cache = require('../lib/cache');
 const eventEmitter = eventSource.eventEmitter;
 
 describe('cache.js', () => {
   let cache;
   before(() => {
-    cache = require('../lib/cache');
+    cache = new Cache(eventEmitter);
   });
 
   it('put and get entry', () => {
