@@ -10,7 +10,7 @@ const entriesMock = sinon.spy((options) => Promise.resolve());
 const modelMock = sinon.spy((title) => {
   return {
     entry: entryMock,
-    entries: entriesMock,
+    entryList: entriesMock,
   }
 });
 const dmMock = { model: modelMock, id: '76de6263' };

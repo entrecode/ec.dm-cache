@@ -25,6 +25,22 @@ describe('cache.js', () => {
     })
   });
 
+  it('cache results are cloned', () => {
+    const key = 'myKeyCloneTest';
+    const payload = { pay: 'load1' };
+
+    return cache.putEntry(key, 'mymodel', 'myEntry', Object.assign({}, payload))
+    .then(() => cache.getEntry(key))
+    .then((result) => {
+      result.pay = 'load2';
+      return cache.getEntry(key);
+    })
+    .then((result) => {
+      expect(result).to.eql(payload);
+      expect(result).to.have.property('pay', 'load1');
+    })
+  });
+
   it('deletedEntry get', () => {
     const key = 'myKey';
     const payload = { pay: 'load2' };
