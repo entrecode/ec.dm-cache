@@ -1,12 +1,12 @@
 const sinon = require('sinon');
 const chai = require('chai');
 const sinonChai = require('sinon-chai');
+const EventEmitter = require('events');
 
 const expect = chai.expect;
 chai.use(sinonChai);
-const eventSource = require('../lib/eventsource-amqp');
 const Cache = require('../lib/cache');
-const eventEmitter = eventSource.eventEmitter;
+const eventEmitter = new EventEmitter();
 
 describe('cache.js', () => {
   let cache;
