@@ -123,4 +123,21 @@ describe('cache.js', () => {
     done();
   });
 
+  it('stats method', () => {
+    return cache.getStats()
+    .then((stats) => {
+      expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+      expect(stats).to.have.property('maxCacheSize', 1000);
+    });
+  });
+
+  it('size and ttl can be set on creation', () => {
+    return new Cache(eventEmitter, 500, 60).getStats()
+    .then((stats) => {
+      expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+      expect(stats).to.have.property('maxCacheSize', 500);
+      expect(stats).to.have.property('timeToLive', 60);
+    });
+  });
+
 });

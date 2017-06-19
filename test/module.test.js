@@ -316,5 +316,13 @@ describe('dm-cache module', () => {
       }).appendSource).to.eql(true);
       done();
     });
-  })
+  });
+
+  it('stats method', () => {
+    return dmCache.getStats()
+    .then((stats) => {
+      expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+      expect(stats).to.have.property('maxCacheSize', 1000);
+    });
+  });
 });

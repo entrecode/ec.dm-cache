@@ -8,7 +8,7 @@ const eventSourceSymbol = Symbol('eventSource');
 
 class DMCache {
 
-  constructor({ dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource }) {
+  constructor({ dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive }) {
     if (!rabbitMQChannel) {
       throw new Error('missing `rabbitMQChannel`');
     }
@@ -29,7 +29,7 @@ class DMCache {
     if (appendSource) {
       this.appendSource = appendSource;
     }
-    this[cacheSymbol] = new Cache(this.eventEmitter);
+    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive);
   }
 
   get eventEmitter() {
@@ -124,7 +124,9 @@ class DMCache {
     return Promise.reject('not implemented');
   }
 
-
+  getStats() {
+    return this[cacheSymbol].getStats();
+  }
 }
 
 module.exports = DMCache;
