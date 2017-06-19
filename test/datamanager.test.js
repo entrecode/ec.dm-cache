@@ -15,18 +15,16 @@ const modelMock = sinon.spy((title) => {
 });
 const dmMock = { model: modelMock, id: '76de6263' };
 
+const DataManagerWrapper  =require('../lib/datamanager');
+
 describe('datamanager.js', () => {
   let dm;
   before(() => {
-    dm = require('../lib/datamanager');
-  });
-  it('setDataManagerInstance', (done) => {
-    dm.setDataManagerInstance(dmMock);
-    done();
+    dm = new DataManagerWrapper(dmMock);
   });
   describe('dm access methods', () => {
     before(() => {
-      dm.setDataManagerInstance(dmMock);
+      dm.dataManagerInstance = dmMock;
     });
     beforeEach(() => {
       entryMock.reset();
