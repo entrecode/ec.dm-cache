@@ -1,12 +1,40 @@
-'use strict';
-const cache = require('./lib/cache');
-const datamanager = require('./lib/datamanager');
-const eventSource = require('./lib/eventsource-amqp');
+const Cache = require('./lib/cache');
+const DataManagerWrapper = require('./lib/datamanager');
+const EventSourceAMQP = require('./lib/eventsource-amqp');
 
-let appendSource = false;
+const dataManagerSymbol = Symbol('dataManager');
+const cacheSymbol = Symbol('cache');
+const eventSourceSymbol = Symbol('eventSource');
 
-const dmCache = {
-  eventEmitter: eventSource.eventEmitter,
+class DMCache {
+
+  constructor({ dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource }) {
+    if (!rabbitMQChannel) {
+      throw new Error('missing `rabbitMQChannel`');
+    }
+    if (!dataManagerInstance && !sdkInstance) {
+      throw new Error('missing either `dataManagerInstance` or `sdkInstance`');
+    }
+    if (sdkInstance) {
+      // TODO support for ec.sdk
+      throw new Error('ec.sdk is not yet supported');
+    }
+    if (dataManagerInstance) {
+      this[dataManagerSymbol] = new DataManagerWrapper(dataManagerInstance);
+    }
+    this[eventSourceSymbol] = new EventSourceAMQP({
+      rabbitMQChannel,
+      dataManagerShortID: dataManagerInstance.id,
+    });
+    if (appendSource) {
+      this.appendSource = appendSource;
+    }
+    this[cacheSymbol] = new Cache(this.eventEmitter);
+  }
+
+  get eventEmitter() {
+    return this[eventSourceSymbol].eventEmitter;
+  }
 
   /**
    * load an entry from datamanager
@@ -30,23 +58,23 @@ const dmCache = {
       const fieldsString = fields.length > 0 ? JSON.stringify(fields) : false;
       const levelsString = levels > 1 ? levels : false;
       const key = [modelTitle, entryID, fieldsString, levelsString].filter(x => !!x).join('|');
-      return cache.getEntry(key)
+      return this[cacheSymbol].getEntry(key)
       .then((cachedEntry) => {
         if (cachedEntry) {
-          if (appendSource) {
+          if (this.appendSource) {
             cachedEntry.dmCacheHitFrom = 'cache';
           }
           return cachedEntry;
         }
-        return datamanager.getEntry(modelTitle, entryID, { fields, levels })
+        return this[dataManagerSymbol].getEntry(modelTitle, entryID, { fields, levels })
         .then((entryResult) => {
-          cache.putEntry(key, modelTitle, entryID, entryResult);
-          eventSource.watchEntry(modelTitle, entryID);
+          this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult);
+          this[eventSourceSymbol].watchEntry(modelTitle, entryID);
           if (levels > 1) {
-            datamanager.findLinkedEntries(entryResult)
-            .map((toWatch) => eventSource.watchEntry(...toWatch));
+            this[dataManagerSymbol].findLinkedEntries(entryResult)
+            .map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch));
           }
-          if (appendSource) {
+          if (this.appendSource) {
             entryResult.dmCacheHitFrom = 'source';
           }
           return entryResult;
@@ -59,7 +87,8 @@ const dmCache = {
         return result;
       });
     })
-  },
+  }
+
 
   getEntries(modelTitle, options) {
     return Promise.resolve()
@@ -68,59 +97,34 @@ const dmCache = {
         throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
       }
       const key = [modelTitle, JSON.stringify(options)].join('|');
-      return cache.getEntries(key)
+      return this[cacheSymbol].getEntries(key)
       .then((cachedEntries) => {
         if (cachedEntries) {
-          if (appendSource) {
+          if (this.appendSource) {
             cachedEntries.dmCacheHitFrom = 'cache';
           }
           return cachedEntries;
         }
-        return datamanager.getEntries(modelTitle, options)
+        return this[dataManagerSymbol].getEntries(modelTitle, options)
         .then((entriesResult) => {
-          cache.putEntries(key, modelTitle, entriesResult);
-          eventSource.watchModel(modelTitle);
-          if (appendSource) {
+          this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
+          this[eventSourceSymbol].watchModel(modelTitle);
+          if (this.appendSource) {
             entriesResult.dmCacheHitFrom = 'source';
           }
           return entriesResult;
         })
       });
     })
-  },
+  }
+
 
   assetHelper(type, assetID, ...params) {
     // todo
     return Promise.reject('not implemented');
-  },
+  }
 
-  setup({ dataManagerInstance, sdkInstance, rabbitMQConnection, rabbitMQChannel, verbose }) {
-    if (!dataManagerInstance || (!rabbitMQConnection && !rabbitMQChannel)) {
-      throw new Error('missing setup options');
-    }
-    if (dataManagerInstance) {
-      datamanager.setDataManagerInstance(dataManagerInstance);
-      eventSource.setDataManagerID(dataManagerInstance.id);
-    }
-    if (sdkInstance) {
-      // TODO support for ec.sdk
-      throw new Error('ec.sdk is not yet supported');
-    }
-    if (rabbitMQConnection) {
-      eventSource.setRabbitMQConnection(rabbitMQConnection);
-    }
-    if (rabbitMQChannel) {
-      eventSource.setRabbitMQChannel(rabbitMQChannel);
-    }
-    if (verbose) {
-      appendSource = verbose;
-    }
-  },
 
-  setDataManagerInstance(dataManagerInstance) {
-    datamanager.setDataManagerInstance(dataManagerInstance);
-    eventSource.setDataManagerID(dataManagerInstance.id);
-  },
-};
+}
 
-module.exports = dmCache;
+module.exports = DMCache;

@@ -2,76 +2,95 @@ const sinon = require('sinon');
 const chai = require('chai');
 const sinonChai = require('sinon-chai');
 
-const cache = require('../lib/cache');
-const datamanager = require('../lib/datamanager');
-const eventSource = require('../lib/eventsource-amqp');
 
 const expect = chai.expect;
 chai.use(sinonChai);
+const DMCache = require('../dm-cache');
 
+let cache;
+let datamanager;
+let eventSource;
 describe('dm-cache module', () => {
   let dmCache;
   before(() => {
-    const fakeCache = new Map();
-    sinon.stub(cache, 'getEntry', (key) => {
-      if (fakeCache.has(key)) {
-        return Promise.resolve(fakeCache.get(key));
-      }
-      return Promise.resolve();
-    });
-    sinon.stub(cache, 'getEntries', (key) => {
-      if (fakeCache.has(key)) {
-        return Promise.resolve(fakeCache.get(key));
-      }
-      return Promise.resolve();
-    });
-    sinon.stub(cache, 'putEntry', (key, modelTitle, entryID, payload) => {
-      fakeCache.set(key, payload);
-      return Promise.resolve();
-    });
-    sinon.stub(cache, 'putEntries', (key, modelTitle, payload) => {
-      fakeCache.set(key, payload);
-      return Promise.resolve();
-    });
-    sinon.stub(datamanager, 'getEntry', (modelTitle, entryID, options) => {
-      if (modelTitle === 'testModel3' && entryID === 'entry0'
-        && options.levels === 1 && options.fields.length === 0) {
-        return Promise.resolve({ id: '3' });
-      }
-      if (modelTitle === 'testModel3' && entryID === 'entry1'
-       && options.levels === 1 && options.fields.length === 1 && options.fields[0] === 'myfield') {
-        return Promise.resolve({ id: '4' });
-      }
-      if (modelTitle === 'testModel3' && entryID === 'entry2'
-        && options.levels === 2 && options.fields.length === 0) {
-        return Promise.resolve({ id: '5' });
-      }
-      return Promise.reject(new Error('not found'));
-    });
-    sinon.stub(datamanager, 'getEntries', (modelTitle, options) => {
-      switch (modelTitle) {
-      case 'testModel1': {
-        return Promise.resolve({ id: '1' });
-      }
-      case 'testModel2': {
-        return Promise.resolve({ id: '2' });
-      }
-      default:
-        return Promise.reject(new Error('not found'));
-      }
-    });
-    sinon.stub(datamanager, 'findLinkedEntries', (result) => {
-      if (result.id === '5') {
-        return [['testModel2', 'entryx'], ['testModel3', 'entry0']];
-      }
-    });
-    sinon.stub(eventSource, 'watchEntry', (modelTitle, entryID) => {
+    let fakeCache = new Map();
 
+    dmCache = new DMCache({
+      dataManagerInstance: { id: 'abcdefgh' },
+      rabbitMQChannel: { assertQueue: () => Promise.reject() },
+      appendSource: false,
     });
-    sinon.stub(eventSource, 'watchModel', (modelTitle) => {
+    Object.getOwnPropertySymbols(dmCache).forEach((symbol) => {
+      if (symbol.toString() === 'Symbol(dataManager)') {
+        datamanager = dmCache[symbol];
+        sinon.stub(datamanager, 'getEntry', (modelTitle, entryID, options) => {
+          if (modelTitle === 'testModel3' && entryID === 'entry0'
+            && options.levels === 1 && options.fields.length === 0) {
+            return Promise.resolve({ id: '3' });
+          }
+          if (modelTitle === 'testModel3' && entryID === 'entry1'
+            && options.levels === 1 && options.fields.length === 1 && options.fields[0] === 'myfield') {
+            return Promise.resolve({ id: '4' });
+          }
+          if (modelTitle === 'testModel3' && entryID === 'entry2'
+            && options.levels === 2 && options.fields.length === 0) {
+            return Promise.resolve({ id: '5' });
+          }
+          return Promise.reject(new Error('not found'));
+        });
+        sinon.stub(datamanager, 'getEntries', (modelTitle, options) => {
+          switch (modelTitle) {
+          case 'testModel1': {
+            return Promise.resolve({ id: '1' });
+          }
+          case 'testModel2': {
+            return Promise.resolve({ id: '2' });
+          }
+          case 'testModel4': {
+            return Promise.resolve({ id: '6' });
+          }
+          default:
+            return Promise.reject(new Error('not found'));
+          }
+        });
+        sinon.stub(datamanager, 'findLinkedEntries', (result) => {
+          if (result.id === '5') {
+            return [['testModel2', 'entryx'], ['testModel3', 'entry0']];
+          }
+        });
+      }
+      if (symbol.toString() === 'Symbol(cache)') {
+        cache = dmCache[symbol];
+        sinon.stub(cache, 'getEntry', (key) => {
+          if (fakeCache.has(key)) {
+            return Promise.resolve(fakeCache.get(key));
+          }
+          return Promise.resolve();
+        });
+        sinon.stub(cache, 'getEntries', (key) => {
+          if (fakeCache.has(key)) {
+            return Promise.resolve(fakeCache.get(key));
+          }
+          return Promise.resolve();
+        });
+        sinon.stub(cache, 'putEntry', (key, modelTitle, entryID, payload) => {
+          fakeCache.set(key, payload);
+          return Promise.resolve();
+        });
+        sinon.stub(cache, 'putEntries', (key, modelTitle, payload) => {
+          fakeCache.set(key, payload);
+          return Promise.resolve();
+        });
+      }
+      if (symbol.toString() === 'Symbol(eventSource)') {
+        eventSource = dmCache[symbol];
+        sinon.stub(eventSource, 'watchEntry', (modelTitle, entryID) => {
 
-    });
-    dmCache = require('../dm-cache');
+        });
+        sinon.stub(eventSource, 'watchModel', (modelTitle) => {
+        })
+      }
+    })
   });
   after(() => {
     cache.getEntry.restore();
@@ -84,6 +103,7 @@ describe('dm-cache module', () => {
     eventSource.watchModel.restore();
   });
   beforeEach(() => {
+    dmCache.appendSource = false;
     cache.getEntry.reset();
     cache.getEntries.reset();
     cache.putEntry.reset();
@@ -103,6 +123,14 @@ describe('dm-cache module', () => {
         expect(eventSource.watchModel).to.have.been.calledWith('testModel1');
       })
     });
+    it('appendSource (returns from datamanager)', () => {
+      dmCache.appendSource = true;
+      return dmCache.getEntries('testModel4')
+      .then((result) => {
+        expect(result.id).to.eql('6');
+        expect(result).to.have.property('dmCacheHitFrom', 'source');
+      })
+    });
     it('returns from cache and does nothing else', () => {
       return dmCache.getEntries('testModel2', { size: 1 })
       .then((result) => {
@@ -118,6 +146,18 @@ describe('dm-cache module', () => {
         expect(cache.putEntries).to.have.not.been.called;
         expect(datamanager.getEntries).to.have.not.been.called;
         expect(eventSource.watchModel).to.have.not.been.called;
+      })
+    });
+    it('appendSource (returns from cache)', () => {
+      return dmCache.getEntries('testModel2', { size: 1 })
+      .then((result) => {
+        expect(result.id).to.eql('2');
+        dmCache.appendSource = true;
+        return dmCache.getEntries('testModel2', { size: 1 });
+      })
+      .then((result) => {
+        expect(result.id).to.eql('2');
+        expect(result).to.have.property('dmCacheHitFrom', 'cache');
       })
     });
     it('fails early if missing model title', () => {
@@ -142,7 +182,7 @@ describe('dm-cache module', () => {
         expect(result.id).to.eql('3');
         expect(cache.getEntry).to.have.been.calledWith('testModel3|entry0');
         expect(cache.putEntry).to.have.been
-        .calledWith('testModel3|entry0', 'testModel3', 'entry0', { id: '3'});
+        .calledWith('testModel3|entry0', 'testModel3', 'entry0', { id: '3' });
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry0');
       });
     });
@@ -152,7 +192,7 @@ describe('dm-cache module', () => {
         expect(result.id).to.eql('4');
         expect(cache.getEntry).to.have.been.calledWith('testModel3|entry1|["myfield"]');
         expect(cache.putEntry).to.have.been
-        .calledWith('testModel3|entry1|["myfield"]', 'testModel3', 'entry1', { id: '4'});
+        .calledWith('testModel3|entry1|["myfield"]', 'testModel3', 'entry1', { id: '4' });
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry1');
         datamanager.getEntry.reset();
         cache.putEntry.reset();
@@ -172,7 +212,7 @@ describe('dm-cache module', () => {
         expect(result.id).to.eql('5');
         expect(cache.getEntry).to.have.been.calledWith('testModel3|entry2|2');
         expect(cache.putEntry).to.have.been
-        .calledWith('testModel3|entry2|2', 'testModel3', 'entry2', { id: '5'});
+        .calledWith('testModel3|entry2|2', 'testModel3', 'entry2', { id: '5' });
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry2');
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel2', 'entryx');
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry0');
