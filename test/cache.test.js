@@ -25,7 +25,6 @@ describe('cache.js', () => {
     })
   });
 
-
   it('deletedEntry get', () => {
     const key = 'myKey';
     const payload = { pay: 'load2' };
@@ -56,7 +55,6 @@ describe('cache.js', () => {
       expect(result).to.eql(payload);
     })
   });
-
 
   it('deletedEntries get', () => {
     const key = 'some filter';
@@ -97,4 +95,16 @@ describe('cache.js', () => {
       expect(result).to.be.undefined;
     })
   });
+
+  it('re-setting of eventEmitter removes listener', (done) => {
+    expect(eventEmitter.listenerCount('entryUpdated')).to.eql(1);
+    const listener = eventEmitter.listeners('entryUpdated')[0];
+    const newEmitter = new EventEmitter();
+    cache.eventEmitter = newEmitter;
+    expect(eventEmitter.listenerCount('entryUpdated')).to.eql(0);
+    expect(newEmitter.listenerCount('entryUpdated')).to.eql(1);
+    expect(newEmitter.listeners('entryUpdated')[0]).to.eql(listener);
+    done();
+  });
+
 });

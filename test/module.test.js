@@ -28,6 +28,10 @@ describe('dm-cache module', () => {
             && options.levels === 1 && options.fields.length === 0) {
             return Promise.resolve({ id: '3' });
           }
+          if (modelTitle === 'testModel3' && entryID === 'entry3'
+            && options.levels === 1 && options.fields.length === 0) {
+            return Promise.resolve({ id: '7' });
+          }
           if (modelTitle === 'testModel3' && entryID === 'entry1'
             && options.levels === 1 && options.fields.length === 1 && options.fields[0] === 'myfield') {
             return Promise.resolve({ id: '4' });
@@ -186,6 +190,14 @@ describe('dm-cache module', () => {
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry0');
       });
     });
+    it('appendSource (returns from datamanager)', () => {
+      dmCache.appendSource = true;
+      return dmCache.getEntry('testModel3', 'entry3')
+      .then((result) => {
+        expect(result.id).to.eql('7');
+        expect(result).to.have.property('dmCacheHitFrom', 'source');
+      });
+    });
     it('returns from cache and does nothing else', () => {
       return dmCache.getEntry('testModel3', 'entry1', ['myfield'])
       .then((result) => {
@@ -204,6 +216,18 @@ describe('dm-cache module', () => {
         expect(datamanager.getEntry).to.have.not.been.called;
         expect(cache.putEntry).to.have.not.been.called;
         expect(eventSource.watchEntry).to.have.not.been.called;
+      });
+    });
+    it('appendSource (returns from cache)', () => {
+      return dmCache.getEntry('testModel3', 'entry1', ['myfield'])
+      .then((result) => {
+        expect(result.id).to.eql('4');
+        dmCache.appendSource = true;
+        return dmCache.getEntry('testModel3', 'entry1', ['myfield']);
+      })
+      .then((result) => {
+        expect(result.id).to.eql('4');
+        expect(result).to.have.property('dmCacheHitFrom', 'cache');
       });
     });
     it('leveled request watches all linked entries', () => {
@@ -265,4 +289,32 @@ describe('dm-cache module', () => {
       });
     });
   });
+  
+  describe('constructor tests', () => {
+    it('fail if missing rabbitmq', (done) => {
+      expect(() => new DMCache({})).to.throw('missing `rabbitMQChannel`');
+      done();
+    });
+    it('fail if missing dm instance', (done) => {
+      expect(() => new DMCache({
+        rabbitMQChannel: true
+      })).to.throw('missing either `dataManagerInstance` or `sdkInstance`');
+      done();
+    });
+    it('fail if SDK instance', (done) => {
+      expect(() => new DMCache({
+        rabbitMQChannel: true,
+        sdkInstance: true
+      })).to.throw('ec.sdk is not yet supported');
+      done();
+    });
+    it('appendSource can be set directly', (done) => {
+      expect(new DMCache({
+        rabbitMQChannel: { assertQueue: () => Promise.reject() },
+        dataManagerInstance: true,
+        appendSource: true,
+      }).appendSource).to.eql(true);
+      done();
+    });
+  })
 });
