@@ -25,11 +25,11 @@ describe('dm-cache module', () => {
         datamanager = dmCache[symbol];
         sinon.stub(datamanager, 'getEntry', (modelTitle, entryID, options) => {
           if (modelTitle === 'testModel3' && entryID === 'entry0'
-            && options.levels === 1 && options.fields.length === 0) {
+            && options.levels === 1 && !options.fields) {
             return Promise.resolve({ id: '3' });
           }
           if (modelTitle === 'testModel3' && entryID === 'entry3'
-            && options.levels === 1 && options.fields.length === 0) {
+            && options.levels === 1 && !options.fields) {
             return Promise.resolve({ id: '7' });
           }
           if (modelTitle === 'testModel3' && entryID === 'entry1'
@@ -37,7 +37,7 @@ describe('dm-cache module', () => {
             return Promise.resolve({ id: '4' });
           }
           if (modelTitle === 'testModel3' && entryID === 'entry2'
-            && options.levels === 2 && options.fields.length === 0) {
+            && options.levels === 2 && !options.fields) {
             return Promise.resolve({ id: '5' });
           }
           return Promise.reject(new Error('not found'));
@@ -231,7 +231,7 @@ describe('dm-cache module', () => {
       });
     });
     it('leveled request watches all linked entries', () => {
-      return dmCache.getEntry('testModel3', 'entry2', [], 2)
+      return dmCache.getEntry('testModel3', 'entry2', null, 2)
       .then((result) => {
         expect(result.id).to.eql('5');
         expect(cache.getEntry).to.have.been.calledWith('testModel3|entry2|2');
@@ -243,7 +243,7 @@ describe('dm-cache module', () => {
       });
     });
     it('transform function works', () => {
-      return dmCache.getEntry('testModel3', 'entry0', [], 1, (x) => x.id)
+      return dmCache.getEntry('testModel3', 'entry0', null, 1, (x) => x.id)
       .then((result) => {
         expect(result).to.eql('3');
       });
