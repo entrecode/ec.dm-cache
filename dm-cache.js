@@ -43,7 +43,7 @@ class DMCache {
    * @param  {Function} [transformFunction] A function to be applied to the entry
    * @return {Promise.<Entry>}         Entry Value
    */
-  getEntry(modelTitle, entryID, fields = [], levels = 1, transformFunction) {
+  getEntry(modelTitle, entryID, fields = null, levels = 1, transformFunction) {
     return Promise.resolve()
     .then(() => {
       if (typeof modelTitle !== 'string' || !modelTitle) {
@@ -55,7 +55,7 @@ class DMCache {
       if (transformFunction && typeof transformFunction !== 'function') {
         throw new Error(`transformFunction given to dmCache.getEntry is invalid!`);
       }
-      const fieldsString = fields.length > 0 ? JSON.stringify(fields) : false;
+      const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
       const levelsString = levels > 1 ? levels : false;
       const key = [modelTitle, entryID, fieldsString, levelsString].filter(x => !!x).join('|');
       return this[cacheSymbol].getEntry(key)
