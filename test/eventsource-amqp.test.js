@@ -76,7 +76,8 @@ const channelMock = {
       }
       subscribedEntries.delete(model + entry);
     }
-  }
+  },
+  ack: sinon.spy()
 };
 
 function simulateAMQPMessage(modelTitle, entryID, type) {
@@ -106,6 +107,7 @@ describe('eventsource-amqp.js', () => {
   beforeEach(() => {
     channelMock.assertQueue.reset();
     channelMock.assertExchange.reset();
+    channelMock.ack.reset();
     channelMock.consume.reset();
     eventSource.eventEmitter.removeAllListeners();
   });
@@ -126,12 +128,16 @@ describe('eventsource-amqp.js', () => {
       eventSource.rabbitMQChannel = channelMock;
       eventSource.watchModel('test1');
     });
-    it('event is fired', (done) => {
+    it('event is fired and message ACKed', (done) => {
       eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
         expect(type).to.eql('mytype');
         expect(modelTitle).to.eql('test1');
         expect(entryID).to.eql('myentry');
-        done();
+        setImmediate(() => {
+          expect(channelMock.ack).to.have.been.called;
+          expect(channelMock.ack).to.have.deep.property('args.0.0.properties.type', 'mytype');
+          done();
+        });
       });
       simulateAMQPMessage('test1', 'myentry', 'mytype');
     });
@@ -146,12 +152,16 @@ describe('eventsource-amqp.js', () => {
       eventSource.rabbitMQChannel = channelMock;
       eventSource.watchEntry('test3', 'watchedE');
     });
-    it('event is fired', (done) => {
+    it('event is fired and message ACKed', (done) => {
       eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
         expect(type).to.eql('mytype');
         expect(modelTitle).to.eql('test3');
         expect(entryID).to.eql('watchedE');
-        done();
+        setImmediate(() => {
+          expect(channelMock.ack).to.have.been.called;
+          expect(channelMock.ack).to.have.deep.property('args.0.0.properties.type', 'mytype');
+          done();
+        });
       });
       simulateAMQPMessage('test3', 'watchedE', 'mytype');
     });
