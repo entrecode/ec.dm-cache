@@ -289,6 +289,18 @@ describe('dm-cache module', () => {
       });
     });
   });
+
+  describe('assetHelper', () => {
+    it('not implemented', () => {
+      return dmCache.assetHelper()
+      .then(() => {
+        throw new Error('unexpectedly resolved');
+      })
+      .catch((err) => {
+        expect(err).to.be.equal('not implemented');
+      })
+    });
+  });
   
   describe('constructor tests', () => {
     it('fail if missing rabbitmq', (done) => {
