@@ -1,5 +1,6 @@
 const Cache = require('./lib/cache');
 const DataManagerWrapper = require('./lib/datamanager');
+const SDKWrapper = require('./lib/ec.sdk');
 const EventSourceAMQP = require('./lib/eventsource-amqp');
 
 const dataManagerSymbol = Symbol('dataManager');
@@ -16,15 +17,13 @@ class DMCache {
       throw new Error('missing either `dataManagerInstance` or `sdkInstance`');
     }
     if (sdkInstance) {
-      // TODO support for ec.sdk
-      throw new Error('ec.sdk is not yet supported');
-    }
-    if (dataManagerInstance) {
+      this[dataManagerSymbol] = new SDKWrapper(sdkInstance);
+    } else {
       this[dataManagerSymbol] = new DataManagerWrapper(dataManagerInstance);
     }
     this[eventSourceSymbol] = new EventSourceAMQP({
       rabbitMQChannel,
-      dataManagerShortID: dataManagerInstance.id,
+      dataManagerShortID: dataManagerInstance ? dataManagerInstance.id : sdkInstance.shortID,
     });
     if (appendSource) {
       this.appendSource = appendSource;
@@ -68,12 +67,13 @@ class DMCache {
         }
         return this[dataManagerSymbol].getEntry(modelTitle, entryID, { fields, levels })
         .then((entryResult) => {
-          this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult);
-          this[eventSourceSymbol].watchEntry(modelTitle, entryID);
+          let linkedEntries = [];
           if (levels > 1) {
-            this[dataManagerSymbol].findLinkedEntries(entryResult)
-            .map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch));
+            linkedEntries =this[dataManagerSymbol].findLinkedEntries(entryResult);
           }
+          this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult, linkedEntries);
+          this[eventSourceSymbol].watchEntry(modelTitle, entryID);
+          linkedEntries.map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch));
           if (this.appendSource) {
             entryResult.dmCacheHitFrom = 'source';
           }
@@ -126,6 +126,14 @@ class DMCache {
 
   getStats() {
     return this[cacheSymbol].getStats();
+  }
+
+  watchModel(modelTitle) {
+    return this[eventSourceSymbol] .watchEntry(modelTitle)
+  }
+
+  watchEntry(modelTitle) {
+    return this[eventSourceSymbol] .watchEntry(modelTitle)
   }
 }
 

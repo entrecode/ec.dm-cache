@@ -110,11 +110,23 @@ of the two caches.
 
 ### `dmCache.eventEmitter`
 
-An event Emitter you can use to get notified on updates:
+#### `channelOpen`
+An event you can use to get notified when the rabbitmq channel is opened.
 
-`dmCache.eventEmitter.on('entryUpdated', ({ type, model, entryID }) => {})`
+```js
+const dmCache = new DMCache(optioins);
+dmCache.eventEmitter.on('channelOpen', () => {
+  dmCache.watchModel('myModel');
+});
 
-`type` is one of `entryUpdated`, `entryDeleted`, `entryCreated`. `model` is the model title.
+```
+
+#### `entryUpdated`
+An event you can use to get notified on updates:
+
+`dmCache.eventEmitter.on('entryUpdated', ({ type, modelTitle, entryID }) => {})`
+
+`type` is one of `entryUpdated`, `entryDeleted`, `entryCreated`. `modelTitle` is the model title.
 Note that this event is always called `entryUpdated`, look for the `type` property to get the
 Data Manager event type. 
 

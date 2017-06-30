@@ -289,23 +289,35 @@ describe('dm-cache module', () => {
       });
     });
   });
+
+  describe('assetHelper', () => {
+    it('not implemented', () => {
+      return dmCache.assetHelper()
+      .then(() => {
+        throw new Error('unexpectedly resolved');
+      })
+      .catch((err) => {
+        expect(err).to.be.equal('not implemented');
+      })
+    });
+  });
   
   describe('constructor tests', () => {
     it('fail if missing rabbitmq', (done) => {
       expect(() => new DMCache({})).to.throw('missing `rabbitMQChannel`');
       done();
     });
-    it('fail if missing dm instance', (done) => {
+    it('fail if missing dm/sdk instance', (done) => {
       expect(() => new DMCache({
         rabbitMQChannel: true
       })).to.throw('missing either `dataManagerInstance` or `sdkInstance`');
       done();
     });
-    it('fail if SDK instance', (done) => {
-      expect(() => new DMCache({
-        rabbitMQChannel: true,
+    it('succeed if SDK instance', (done) => {
+      expect(new DMCache({
+        rabbitMQChannel: { assertQueue: () => Promise.reject() },
         sdkInstance: true
-      })).to.throw('ec.sdk is not yet supported');
+      })).to.be.instanceOf(DMCache);
       done();
     });
     it('appendSource can be set directly', (done) => {
