@@ -110,7 +110,19 @@ of the two caches.
 
 ### `dmCache.eventEmitter`
 
-An event Emitter you can use to get notified on updates:
+#### `channelOpen`
+An event you can use to get notified when the rabbitmq channel is opened.
+
+```js
+const dmCache = new DMCache(optioins);
+dmCache.eventEmitter.on('channelOpen', () => {
+  dmCache.watchModel('myModel');
+});
+
+```
+
+#### `entryUpdated`
+An event you can use to get notified on updates:
 
 `dmCache.eventEmitter.on('entryUpdated', ({ type, modelTitle, entryID }) => {})`
 
