@@ -126,6 +126,14 @@ class DMCache {
   getStats() {
     return this[cacheSymbol].getStats();
   }
+
+  watchModel(modelTitle) {
+    return this[eventSourceSymbol] .watchEntry(modelTitle)
+  }
+
+  watchEntry(modelTitle) {
+    return this[eventSourceSymbol] .watchEntry(modelTitle)
+  }
 }
 
 module.exports = DMCache;
