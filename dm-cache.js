@@ -67,12 +67,13 @@ class DMCache {
         }
         return this[dataManagerSymbol].getEntry(modelTitle, entryID, { fields, levels })
         .then((entryResult) => {
-          this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult);
-          this[eventSourceSymbol].watchEntry(modelTitle, entryID);
+          let linkedEntries = [];
           if (levels > 1) {
-            this[dataManagerSymbol].findLinkedEntries(entryResult)
-            .map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch));
+            linkedEntries =this[dataManagerSymbol].findLinkedEntries(entryResult);
           }
+          this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult, linkedEntries);
+          this[eventSourceSymbol].watchEntry(modelTitle, entryID);
+          linkedEntries.map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch));
           if (this.appendSource) {
             entryResult.dmCacheHitFrom = 'source';
           }
