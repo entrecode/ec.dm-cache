@@ -112,9 +112,9 @@ of the two caches.
 
 An event Emitter you can use to get notified on updates:
 
-`dmCache.eventEmitter.on('entryUpdated', ({ type, model, entryID }) => {})`
+`dmCache.eventEmitter.on('entryUpdated', ({ type, modelTitle, entryID }) => {})`
 
-`type` is one of `entryUpdated`, `entryDeleted`, `entryCreated`. `model` is the model title.
+`type` is one of `entryUpdated`, `entryDeleted`, `entryCreated`. `modelTitle` is the model title.
 Note that this event is always called `entryUpdated`, look for the `type` property to get the
 Data Manager event type. 
 
