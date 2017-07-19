@@ -135,7 +135,7 @@ describe('eventsource-amqp.js', () => {
         expect(entryID).to.eql('myentry');
         setImmediate(() => {
           expect(channelMock.ack).to.have.been.called;
-          expect(channelMock.ack).to.have.deep.property('args.0.0.properties.type', 'mytype');
+          expect(channelMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
           done();
         });
       });
@@ -159,7 +159,7 @@ describe('eventsource-amqp.js', () => {
         expect(entryID).to.eql('watchedE');
         setImmediate(() => {
           expect(channelMock.ack).to.have.been.called;
-          expect(channelMock.ack).to.have.deep.property('args.0.0.properties.type', 'mytype');
+          expect(channelMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
           done();
         });
       });
