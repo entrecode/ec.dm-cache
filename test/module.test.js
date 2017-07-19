@@ -23,7 +23,7 @@ describe('dm-cache module', () => {
     Object.getOwnPropertySymbols(dmCache).forEach((symbol) => {
       if (symbol.toString() === 'Symbol(dataManager)') {
         datamanager = dmCache[symbol];
-        sinon.stub(datamanager, 'getEntry', (modelTitle, entryID, options) => {
+        sinon.stub(datamanager, 'getEntry').callsFake((modelTitle, entryID, options) => {
           if (modelTitle === 'testModel3' && entryID === 'entry0'
             && options.levels === 1 && !options.fields) {
             return Promise.resolve({ id: '3' });
@@ -42,7 +42,7 @@ describe('dm-cache module', () => {
           }
           return Promise.reject(new Error('not found'));
         });
-        sinon.stub(datamanager, 'getEntries', (modelTitle, options) => {
+        sinon.stub(datamanager, 'getEntries').callsFake((modelTitle, options) => {
           switch (modelTitle) {
           case 'testModel1': {
             return Promise.resolve({ id: '1' });
@@ -57,7 +57,7 @@ describe('dm-cache module', () => {
             return Promise.reject(new Error('not found'));
           }
         });
-        sinon.stub(datamanager, 'findLinkedEntries', (result) => {
+        sinon.stub(datamanager, 'findLinkedEntries').callsFake((result) => {
           if (result.id === '5') {
             return [['testModel2', 'entryx'], ['testModel3', 'entry0']];
           }
@@ -65,33 +65,33 @@ describe('dm-cache module', () => {
       }
       if (symbol.toString() === 'Symbol(cache)') {
         cache = dmCache[symbol];
-        sinon.stub(cache, 'getEntry', (key) => {
+        sinon.stub(cache, 'getEntry').callsFake((key) => {
           if (fakeCache.has(key)) {
             return Promise.resolve(fakeCache.get(key));
           }
           return Promise.resolve();
         });
-        sinon.stub(cache, 'getEntries', (key) => {
+        sinon.stub(cache, 'getEntries').callsFake((key) => {
           if (fakeCache.has(key)) {
             return Promise.resolve(fakeCache.get(key));
           }
           return Promise.resolve();
         });
-        sinon.stub(cache, 'putEntry', (key, modelTitle, entryID, payload) => {
+        sinon.stub(cache, 'putEntry').callsFake((key, modelTitle, entryID, payload) => {
           fakeCache.set(key, payload);
           return Promise.resolve();
         });
-        sinon.stub(cache, 'putEntries', (key, modelTitle, payload) => {
+        sinon.stub(cache, 'putEntries').callsFake((key, modelTitle, payload) => {
           fakeCache.set(key, payload);
           return Promise.resolve();
         });
       }
       if (symbol.toString() === 'Symbol(eventSource)') {
         eventSource = dmCache[symbol];
-        sinon.stub(eventSource, 'watchEntry', (modelTitle, entryID) => {
+        sinon.stub(eventSource, 'watchEntry').callsFake((modelTitle, entryID) => {
 
         });
-        sinon.stub(eventSource, 'watchModel', (modelTitle) => {
+        sinon.stub(eventSource, 'watchModel').callsFake((modelTitle) => {
         })
       }
     })
@@ -108,14 +108,14 @@ describe('dm-cache module', () => {
   });
   beforeEach(() => {
     dmCache.appendSource = false;
-    cache.getEntry.reset();
-    cache.getEntries.reset();
-    cache.putEntry.reset();
-    cache.putEntries.reset();
-    datamanager.getEntry.reset();
-    datamanager.getEntries.reset();
-    eventSource.watchEntry.reset();
-    eventSource.watchModel.reset();
+    cache.getEntry.resetHistory();
+    cache.getEntries.resetHistory();
+    cache.putEntry.resetHistory();
+    cache.putEntries.resetHistory();
+    datamanager.getEntry.resetHistory();
+    datamanager.getEntries.resetHistory();
+    eventSource.watchEntry.resetHistory();
+    eventSource.watchModel.resetHistory();
   });
   describe('getEntries', () => {
     it('returns from datamanager and watches model', () => {
@@ -139,9 +139,9 @@ describe('dm-cache module', () => {
       return dmCache.getEntries('testModel2', { size: 1 })
       .then((result) => {
         expect(result.id).to.eql('2');
-        datamanager.getEntries.reset();
-        cache.putEntries.reset();
-        eventSource.watchModel.reset();
+        datamanager.getEntries.resetHistory();
+        cache.putEntries.resetHistory();
+        eventSource.watchModel.resetHistory();
         return dmCache.getEntries('testModel2', { size: 1 });
       })
       .then((result) => {
@@ -206,9 +206,9 @@ describe('dm-cache module', () => {
         expect(cache.putEntry).to.have.been
         .calledWith('testModel3|entry1|["myfield"]', 'testModel3', 'entry1', { id: '4' });
         expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry1');
-        datamanager.getEntry.reset();
-        cache.putEntry.reset();
-        eventSource.watchEntry.reset();
+        datamanager.getEntry.resetHistory();
+        cache.putEntry.resetHistory();
+        eventSource.watchEntry.resetHistory();
         return dmCache.getEntry('testModel3', 'entry1', ['myfield']);
       })
       .then((result) => {
