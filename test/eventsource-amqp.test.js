@@ -4,7 +4,7 @@ const sinonChai = require('sinon-chai');
 
 const expect = chai.expect;
 chai.use(sinonChai);
-let expectedDMID = 'abcdefgh';
+const expectedDMID = 'abcdefgh';
 
 const queueMock = {};
 const subscribedFullModels = new Set();
@@ -77,7 +77,7 @@ const channelMock = {
       subscribedEntries.delete(model + entry);
     }
   },
-  ack: sinon.spy()
+  ack: sinon.spy(),
 };
 
 function simulateAMQPMessage(modelTitle, entryID, type) {
@@ -121,7 +121,7 @@ describe('eventsource-amqp.js', () => {
     setImmediate(() => {
       expect(channelMock.consume).to.have.been.calledOnce;
       done();
-    })
+    });
   });
   describe('watchModel', () => {
     before(() => {
@@ -135,14 +135,14 @@ describe('eventsource-amqp.js', () => {
         expect(entryID).to.eql('myentry');
         setImmediate(() => {
           expect(channelMock.ack).to.have.been.called;
-          expect(channelMock.ack).to.have.deep.property('args.0.0.properties.type', 'mytype');
+          expect(channelMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
           done();
         });
       });
       simulateAMQPMessage('test1', 'myentry', 'mytype');
     });
     it('event to other model is ignored', (done) => {
-      eventSource.eventEmitter.once('entryUpdated', (x) => done(new Error(`event was fired: ${JSON.stringify(x)}`)));
+      eventSource.eventEmitter.once('entryUpdated', x => done(new Error(`event was fired: ${JSON.stringify(x)}`)));
       simulateAMQPMessage('test2', 'myentry', 'mytype');
       setTimeout(done, 1500);
     });
@@ -159,7 +159,7 @@ describe('eventsource-amqp.js', () => {
         expect(entryID).to.eql('watchedE');
         setImmediate(() => {
           expect(channelMock.ack).to.have.been.called;
-          expect(channelMock.ack).to.have.deep.property('args.0.0.properties.type', 'mytype');
+          expect(channelMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
           done();
         });
       });
@@ -226,5 +226,5 @@ describe('eventsource-amqp.js', () => {
       expect(subscribedEntries.has('test4watchedE')).to.be.not.ok;
       simulateAMQPMessage('test4', 'watchedE', 'mytype');
     });
-  })
+  });
 });
