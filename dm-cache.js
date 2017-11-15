@@ -9,7 +9,7 @@ const eventSourceSymbol = Symbol('eventSource');
 
 class DMCache {
   constructor({
-    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive,
+    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive, redisConfig,
   }) {
     if (!rabbitMQChannel) {
       throw new Error('missing `rabbitMQChannel`');
@@ -29,7 +29,7 @@ class DMCache {
     if (appendSource) {
       this.appendSource = appendSource;
     }
-    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive);
+    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive, redisConfig);
   }
 
   get eventEmitter() {

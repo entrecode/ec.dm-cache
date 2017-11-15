@@ -22,6 +22,7 @@
     "sinon-chai": "^2.14.0"
   },
   "dependencies": {
-    "cache-manager": "^2.5.0"
+    "cache-manager": "^2.5.0",
+    "cache-manager-redis-store": "^1.2.0"
   }
 }
