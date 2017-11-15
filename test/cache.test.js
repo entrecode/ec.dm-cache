@@ -6,6 +6,7 @@ const EventEmitter = require('events');
 const expect = chai.expect;
 chai.use(sinonChai);
 const Cache = require('../lib/cache');
+
 const eventEmitter = new EventEmitter();
 
 describe('cache.js', () => {
@@ -22,7 +23,7 @@ describe('cache.js', () => {
     .then(() => cache.getEntry(key))
     .then((result) => {
       expect(result).to.eql(payload);
-    })
+    });
   });
 
   it('cache results are cloned', () => {
@@ -38,7 +39,7 @@ describe('cache.js', () => {
     .then((result) => {
       expect(result).to.eql(payload);
       expect(result).to.have.property('pay', 'load1');
-    })
+    });
   });
 
   it('deletedEntry get', () => {
@@ -58,7 +59,7 @@ describe('cache.js', () => {
     })
     .then((result) => {
       expect(result).to.be.undefined;
-    })
+    });
   });
 
   it('put and get entries', () => {
@@ -69,7 +70,7 @@ describe('cache.js', () => {
     .then(() => cache.getEntries(key))
     .then((result) => {
       expect(result).to.eql(payload);
-    })
+    });
   });
 
   it('deletedEntries get', () => {
@@ -89,7 +90,7 @@ describe('cache.js', () => {
     })
     .then((result) => {
       expect(result).to.be.undefined;
-    })
+    });
   });
 
   it('new entry triggers model cache purge', () => {
@@ -109,7 +110,7 @@ describe('cache.js', () => {
     })
     .then((result) => {
       expect(result).to.be.undefined;
-    })
+    });
   });
 
   it('re-setting of eventEmitter removes listener', (done) => {
@@ -123,21 +124,16 @@ describe('cache.js', () => {
     done();
   });
 
-  it('stats method', () => {
-    return cache.getStats()
-    .then((stats) => {
-      expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
-      expect(stats).to.have.property('maxCacheSize', 1000);
-    });
-  });
+  it('stats method', () => cache.getStats()
+  .then((stats) => {
+    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+    expect(stats).to.have.property('maxCacheSize', 1000);
+  }));
 
-  it('size and ttl can be set on creation', () => {
-    return new Cache(eventEmitter, 500, 60).getStats()
-    .then((stats) => {
-      expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
-      expect(stats).to.have.property('maxCacheSize', 500);
-      expect(stats).to.have.property('timeToLive', 60);
-    });
-  });
-
+  it('size and ttl can be set on creation', () => new Cache(eventEmitter, 500, 60).getStats()
+  .then((stats) => {
+    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+    expect(stats).to.have.property('maxCacheSize', 500);
+    expect(stats).to.have.property('timeToLive', 60);
+  }));
 });
