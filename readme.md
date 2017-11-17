@@ -5,7 +5,8 @@ Module for Node.js to cache data manager entries with live updating/invalidation
 Basically, this module offers a function `getEntry(modelTitle, entryID)` which, well, gets an Entry, 
 and `getEntries(modelTitle, options)` which gets an EntryList.
 The difference to the default Data Manager SDK is that it uses an in-memory cache and AMQP (RabbitMQ) to invalidate that cache.
-This way, you'll get maximum caching without stale data.
+This way, you'll get maximum caching without stale data. Since version 0.5.0 the AMQP is not longer required, please use an
+appropriate TTL if you are not using AMQP.
 
 Note that model structure changes will not be reflected in the cache, as there are currently no events for that.
 
@@ -18,13 +19,14 @@ If any event is fired (including `entryCreated`), all cached calls to its model 
 cache, to prevent stale data when getting lists.
 
 Each DMCache instance has its own cache, so you can use it in multiple projects / with multiple Data Managers
-in parallel.
+in parallel. Since version 0.5.0 DMCache is able to connect to a redis instance. You can use `redisConfig.namespace` to separate
+individual DMCache instances in a single redis db, or you can use `redisConfig.db` to select a different db.
 
 ## Setup:
 Add this line to your package.json dependencies: 
 
 ```js
-    "ec.dm-cache": "git+ssh://git@stash.entrecode.de:7999/cms/ec.dm-cache.git#0.3.0",
+    "ec.dm-cache": "git+ssh://git@stash.entrecode.de:7999/cms/ec.dm-cache.git#0.5.0",
 ```
 
 (check the version number)
@@ -64,6 +66,12 @@ return new Promise((resolve, reject) => {
   const dmCache = new DMCache({
     dataManagerInstance: dataManager,
     rabbitMQChannel,
+    // optional redis config
+    redisConfig: {
+      active: true,
+      host: 'localhost',
+      db: 0
+    },
     cacheSize: 1000, // max items in cache
     appendSource: false, // set to true to append property 'dmCacheHitFrom' to each response
   });
@@ -83,9 +91,10 @@ return new Promise((resolve, reject) => {
 ### `new DMCache(options)`
 The constructor expects an option object with the following properties:
 
-- `dataManagerInstance` set ready datamanager.js instance to use *(required)*
-- *`sdkInstance` set ready ec.sdk instance to use instead of datamanger* **not implemented yet**
-- `rabbitMQChannel` give a connected rabbitMQ channel connected to the publicAPI exchange *(required)*
+- `dataManagerInstance` set ready datamanager.js instance to use *(required, or sdkInstace)*
+- `sdkInstance` set ready ec.sdk instance to use instead of datamanger *(required, orDataManagerInstance)*
+- `rabbitMQChannel` give a connected rabbitMQ channel connected to the publicAPI exchange
+- `redisConfig` add redis connectivity for caching ({ active: boolean, host: string, port: number, db: number, namespace: string })
 - `appendSource` (Boolean) flag to show/hide the `dmCacheHitFrom' flag in responses *(Default: false)*
 - `cacheSize` (Integer) max number of items to be hold in each cache *(Default: 1000)*
 - `timeToLive` (Integer) seconds until items will not be returned anymore *(Default: not set)*
