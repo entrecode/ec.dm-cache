@@ -4,7 +4,7 @@ const sinonChai = require('sinon-chai');
 
 const expect = chai.expect;
 chai.use(sinonChai);
-const expectedDMID = 'abcdefgh';
+const expectedDMID = 'abcdef01';
 
 const queueMock = {};
 const subscribedFullModels = new Set();

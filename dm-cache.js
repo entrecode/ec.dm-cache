@@ -6,14 +6,12 @@ const EventSourceAMQP = require('./lib/eventsource-amqp');
 const dataManagerSymbol = Symbol('dataManager');
 const cacheSymbol = Symbol('cache');
 const eventSourceSymbol = Symbol('eventSource');
+const namespaceSymbol = Symbol('namespace');
 
 class DMCache {
   constructor({
-    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive,
+    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive, redisConfig,
   }) {
-    if (!rabbitMQChannel) {
-      throw new Error('missing `rabbitMQChannel`');
-    }
     if (!dataManagerInstance && !sdkInstance) {
       throw new Error('missing either `dataManagerInstance` or `sdkInstance`');
     }
@@ -22,18 +20,32 @@ class DMCache {
     } else {
       this[dataManagerSymbol] = new DataManagerWrapper(dataManagerInstance);
     }
-    this[eventSourceSymbol] = new EventSourceAMQP({
-      rabbitMQChannel,
-      dataManagerShortID: dataManagerInstance ? dataManagerInstance.id : sdkInstance.shortID,
-    });
+    this.addRabbitMQChannel(rabbitMQChannel);
     if (appendSource) {
       this.appendSource = appendSource;
     }
-    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive);
+    const redis = {};
+    if (redisConfig && 'namespace' in redisConfig) {
+      this[namespaceSymbol] = redisConfig.namespace;
+      Object.assign(redis, redisConfig);
+      delete redis.namespace;
+    } else if (redisConfig) {
+      Object.assign(redis, redisConfig);
+    }
+    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive, redis);
   }
 
   get eventEmitter() {
-    return this[eventSourceSymbol].eventEmitter;
+    return this[eventSourceSymbol] ? this[eventSourceSymbol].eventEmitter : false;
+  }
+
+  addRabbitMQChannel(rabbitMQChannel) {
+    if (rabbitMQChannel) {
+      this[eventSourceSymbol] = new EventSourceAMQP({
+        rabbitMQChannel,
+        dataManagerShortID: this[dataManagerSymbol].id,
+      });
+    }
   }
 
   assetHelper(type, assetID, ...params) {
@@ -47,7 +59,11 @@ class DMCache {
       if (typeof modelTitle !== 'string' || !modelTitle) {
         throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
       }
-      const key = [modelTitle, JSON.stringify(options)].join('|');
+      let key = [modelTitle, JSON.stringify(options)];
+      if (this[namespaceSymbol]) {
+        key.unshift(this[namespaceSymbol]);
+      }
+      key = key.join('|');
       return this[cacheSymbol].getEntries(key)
       .then((cachedEntries) => {
         if (cachedEntries) {
@@ -59,7 +75,9 @@ class DMCache {
         return this[dataManagerSymbol].getEntries(modelTitle, options)
         .then((entriesResult) => {
           this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
-          this[eventSourceSymbol].watchModel(modelTitle);
+          if (this[eventSourceSymbol]) {
+            this[eventSourceSymbol].watchModel(modelTitle);
+          }
           if (this.appendSource) {
             entriesResult.dmCacheHitFrom = 'source';
           }
@@ -90,7 +108,11 @@ class DMCache {
       }
       const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
       const levelsString = levels > 1 ? levels : false;
-      const key = [modelTitle, entryID, fieldsString, levelsString].filter(x => !!x).join('|');
+      let key = [modelTitle, entryID, fieldsString, levelsString].filter(x => !!x);
+      if (this[namespaceSymbol]) {
+        key.unshift(this[namespaceSymbol]);
+      }
+      key = key.join('|');
       return this[cacheSymbol].getEntry(key)
       .then((cachedEntry) => {
         if (cachedEntry) {
@@ -106,8 +128,10 @@ class DMCache {
             linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
           }
           this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult, linkedEntries);
-          this[eventSourceSymbol].watchEntry(modelTitle, entryID);
-          linkedEntries.map(toWatch => this[eventSourceSymbol].watchEntry(...toWatch));
+          if (this[eventSourceSymbol]) {
+            this[eventSourceSymbol].watchEntry(modelTitle, entryID);
+            linkedEntries.map(toWatch => this[eventSourceSymbol].watchEntry(...toWatch));
+          }
           if (this.appendSource) {
             entryResult.dmCacheHitFrom = 'source';
           }
@@ -128,11 +152,11 @@ class DMCache {
   }
 
   watchEntry(modelTitle) {
-    return this[eventSourceSymbol].watchEntry(modelTitle);
+    return this[eventSourceSymbol] ? this[eventSourceSymbol].watchEntry(modelTitle) : false;
   }
 
   watchModel(modelTitle) {
-    return this[eventSourceSymbol].watchEntry(modelTitle);
+    return this[eventSourceSymbol] ? this[eventSourceSymbol].watchModel(modelTitle) : false;
   }
 }
 
