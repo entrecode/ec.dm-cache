@@ -136,4 +136,10 @@ describe('cache.js', () => {
     expect(stats).to.have.property('maxCacheSize', 500);
     expect(stats).to.have.property('timeToLive', 60);
   }));
+
+  it('ttl can be set on creation to 0', () => new Cache(eventEmitter, null, 0).getStats()
+  .then((stats) => {
+    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+    expect(stats).to.have.property('timeToLive', 0);
+  }));
 });
