@@ -25,8 +25,8 @@ describe('datamanager.js', () => {
       dm.dataManagerInstance = dmMock;
     });
     beforeEach(() => {
-      entryMock.reset();
-      entriesMock.reset();
+      entryMock.resetHistory();
+      entriesMock.resetHistory();
     });
     it('getEntry', () => dm.getEntry('title', 'id', { fields: ['prop'], levels: 2 })
     .then(() => {
