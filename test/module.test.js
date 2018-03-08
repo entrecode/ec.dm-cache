@@ -178,6 +178,11 @@ describe('dm-cache module', () => {
       .calledWith('testModel3|entry0', 'testModel3', 'entry0', { id: '3' });
       expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry0');
     }));
+    it('also works with liteEntry object', () => dmCache.getEntry('testModel3', { id: 'entry0' })
+    .then((result) => {
+      expect(result.id).to.eql('3');
+      expect(cache.getEntry).to.have.been.calledWith('testModel3|entry0');
+    }));
     it('appendSource (returns from datamanager)', () => {
       dmCache.appendSource = true;
       return dmCache.getEntry('testModel3', 'entry3')

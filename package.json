@@ -1,13 +1,13 @@
 {
   "name": "ec.dm-cache",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Module for Node.js to cache data manager entries with live updating/invalidation using AMQP. By entrecode.",
   "main": "dm-cache.js",
   "license": "none",
   "private": true,
   "scripts": {
     "coverage": "NODE_ENV=testing istanbul cover _mocha -- --recursive -R dot && open ./coverage/lcov-report/index.html",
-    "test": "NODE_ENV=testing mocha -R spec"
+    "test": "NODE_ENV=testing mocha -R spec --exit"
   },
   "repository": {
     "type": "git",
@@ -17,9 +17,9 @@
   "devDependencies": {
     "chai": "^4.1.2",
     "istanbul": "^0.4.5",
-    "mocha": "^4.0.1",
+    "mocha": "^5.0.4",
     "sinon": "^4.1.2",
-    "sinon-chai": "^2.14.0"
+    "sinon-chai": "^3.0.0"
   },
   "dependencies": {
     "cache-manager": "^2.5.0",

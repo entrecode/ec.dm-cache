@@ -105,10 +105,10 @@ describe('eventsource-amqp.js', () => {
     });
   });
   beforeEach(() => {
-    channelMock.assertQueue.reset();
-    channelMock.assertExchange.reset();
-    channelMock.ack.reset();
-    channelMock.consume.reset();
+    channelMock.assertQueue.resetHistory();
+    channelMock.assertExchange.resetHistory();
+    channelMock.ack.resetHistory();
+    channelMock.consume.resetHistory();
     eventSource.eventEmitter.removeAllListeners();
   });
   it('set nothing throws', (done) => {

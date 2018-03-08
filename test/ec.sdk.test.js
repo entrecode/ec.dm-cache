@@ -18,8 +18,8 @@ describe('ec.sdk.js', () => {
     sdk = new SDKWrapper(sdkMock);
   });
   beforeEach(() => {
-    sdkMock.entry.reset();
-    sdkMock.entryList.reset();
+    sdkMock.entry.resetHistory();
+    sdkMock.entryList.resetHistory();
   });
   it('getEntry', () => sdk.getEntry('title', 'id', { fields: ['prop'], levels: 2 })
   .then(() => {
