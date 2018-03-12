@@ -72,6 +72,7 @@ return new Promise((resolve, reject) => {
       host: 'localhost',
       db: 0
     },
+    namespace: 'myproject',
     cacheSize: 1000, // max items in cache
     appendSource: false, // set to true to append property 'dmCacheHitFrom' to each response
   });
