@@ -95,7 +95,7 @@ class DMCache {
   /**
    * load an entry from datamanager
    * @param  {String} modelTitle        Title of the model to get the entry from
-   * @param  {String} entryID           ID of the entry to get
+   * @param  {String} entryID           ID of the entry to get or an entry with id property
    * @param  {Function} [transformFunction] A function to be applied to the entry
    * @return {Promise.<Entry>}         Entry Value
    */
@@ -105,15 +105,19 @@ class DMCache {
       if (typeof modelTitle !== 'string' || !modelTitle) {
         throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
       }
-      if (typeof entryID !== 'string' || !entryID) {
-        throw new Error(`entryID '${entryID}' given to dmCache.getEntry is invalid!`);
+      let validatedEntryID = entryID;
+      if (typeof entryID === 'object' && 'id' in entryID) {
+        validatedEntryID = entryID.id;
+      }
+      if (typeof validatedEntryID !== 'string' || !validatedEntryID) {
+        throw new Error(`entryID '${validatedEntryID}' given to dmCache.getEntry is invalid!`);
       }
       if (transformFunction && typeof transformFunction !== 'function') {
         throw new Error('transformFunction given to dmCache.getEntry is invalid!');
       }
       const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
       const levelsString = levels > 1 ? levels : false;
-      let key = [modelTitle, entryID, fieldsString, levelsString].filter(x => !!x);
+      let key = [modelTitle, validatedEntryID, fieldsString, levelsString].filter(x => !!x);
       if (this[namespaceSymbol]) {
         key.unshift(this[namespaceSymbol]);
       }
@@ -126,15 +130,15 @@ class DMCache {
           }
           return cachedEntry;
         }
-        return this[dataManagerSymbol].getEntry(modelTitle, entryID, { fields, levels })
+        return this[dataManagerSymbol].getEntry(modelTitle, validatedEntryID, { fields, levels })
         .then((entryResult) => {
           let linkedEntries = [];
           if (levels > 1) {
             linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
           }
-          this[cacheSymbol].putEntry(key, modelTitle, entryID, entryResult, linkedEntries);
+          this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
           if (this[eventSourceSymbol]) {
-            this[eventSourceSymbol].watchEntry(modelTitle, entryID);
+            this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID);
             linkedEntries.map(toWatch => this[eventSourceSymbol].watchEntry(...toWatch));
           }
           if (this.appendSource) {
