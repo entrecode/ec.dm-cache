@@ -10,7 +10,7 @@ const namespaceSymbol = Symbol('namespace');
 
 class DMCache {
   constructor({
-    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive, redisConfig,
+    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive, redisConfig, namespace,
   }) {
     if (!dataManagerInstance && !sdkInstance) {
       throw new Error('missing either `dataManagerInstance` or `sdkInstance`');
@@ -24,6 +24,11 @@ class DMCache {
     if (appendSource) {
       this.appendSource = appendSource;
     }
+
+    if (!namespace) {
+      this[namespaceSymbol] = namespace;
+    }
+
     const redis = {};
     if (redisConfig && 'namespace' in redisConfig) {
       this[namespaceSymbol] = redisConfig.namespace;
