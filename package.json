@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "ssh://git@stash.entrecode.de:7999/cms/ec.dm-cache.git"
+    "url": "git@github.com:entrecode/ec.dm-cache.git"
   },
   "author": "deyhle@entrecode.de",
   "devDependencies": {
