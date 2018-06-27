@@ -25,8 +25,8 @@ individual DMCache instances in a single redis db, or you can use `redisConfig.d
 ## Setup:
 Add this line to your package.json dependencies: 
 
-```js
-    "ec.dm-cache": "git+ssh://git@stash.entrecode.de:7999/cms/ec.dm-cache.git#0.5.0",
+```
+    "ec.dm-cache": "entrecode/ec.dm-cache.git#semver:^0.5.0",
 ```
 
 (check the version number)
