@@ -10,7 +10,14 @@ const namespaceSymbol = Symbol('namespace');
 
 class DMCache {
   constructor({
-    dataManagerInstance, sdkInstance, rabbitMQChannel, appendSource, cacheSize, timeToLive, redisConfig, namespace,
+    dataManagerInstance,
+    sdkInstance,
+    rabbitMQChannel,
+    appendSource,
+    cacheSize,
+    timeToLive,
+    redisConfig,
+    namespace,
   }) {
     if (!dataManagerInstance && !sdkInstance) {
       throw new Error('missing either `dataManagerInstance` or `sdkInstance`');
@@ -25,18 +32,19 @@ class DMCache {
       this.appendSource = appendSource;
     }
 
-    if (!namespace) {
+    if (namespace) {
       this[namespaceSymbol] = namespace;
     }
 
     const redis = {};
-    if (redisConfig && 'namespace' in redisConfig) {
-      this[namespaceSymbol] = redisConfig.namespace;
+    if (redisConfig) {
       Object.assign(redis, redisConfig);
-      delete redis.namespace;
-    } else if (redisConfig) {
-      Object.assign(redis, redisConfig);
+      if ('namespace' in redisConfig) {
+        this[namespaceSymbol] = redisConfig.namespace;
+        delete redis.namespace;
+      }
     }
+
     this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive, redis);
   }
 
@@ -60,100 +68,102 @@ class DMCache {
 
   getEntries(modelTitle, options) {
     return Promise.resolve()
-    .then(() => {
-      if (typeof modelTitle !== 'string' || !modelTitle) {
-        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
-      }
-      let key = [modelTitle, JSON.stringify(options)];
-      if (this[namespaceSymbol]) {
-        key.unshift(this[namespaceSymbol]);
-      }
-      key = key.join('|');
-      return this[cacheSymbol].getEntries(key)
-      .then((cachedEntries) => {
-        if (cachedEntries) {
-          if (this.appendSource) {
-            cachedEntries.dmCacheHitFrom = 'cache';
-          }
-          return cachedEntries;
+      .then(() => {
+        if (typeof modelTitle !== 'string' || !modelTitle) {
+          throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
         }
-        return this[dataManagerSymbol].getEntries(modelTitle, options)
-        .then((entriesResult) => {
-          this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
-          if (this[eventSourceSymbol]) {
-            this[eventSourceSymbol].watchModel(modelTitle);
-          }
-          if (this.appendSource) {
-            entriesResult.dmCacheHitFrom = 'source';
-          }
-          return entriesResult;
-        });
+        let key = [modelTitle, JSON.stringify(options)];
+        if (this[namespaceSymbol]) {
+          key.unshift(this[namespaceSymbol]);
+        }
+        key = key.join('|');
+        return this[cacheSymbol].getEntries(key)
+          .then((cachedEntries) => {
+            if (cachedEntries) {
+              if (this.appendSource) {
+                cachedEntries.dmCacheHitFrom = 'cache';
+              }
+              return cachedEntries;
+            }
+            return this[dataManagerSymbol].getEntries(modelTitle, options)
+              .then((entriesResult) => {
+                this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
+                if (this[eventSourceSymbol]) {
+                  this[eventSourceSymbol].watchModel(modelTitle);
+                }
+                if (this.appendSource) {
+                  entriesResult.dmCacheHitFrom = 'source';
+                }
+                return entriesResult;
+              });
+          });
       });
-    });
   }
 
   /**
    * load an entry from datamanager
    * @param  {String} modelTitle        Title of the model to get the entry from
    * @param  {String} entryID           ID of the entry to get or an entry with id property
+   * @param  {Array<string>} fields     Array of requested fields
+   * @param  {Number} levels            Number of levels to request
    * @param  {Function} [transformFunction] A function to be applied to the entry
    * @return {Promise.<Entry>}         Entry Value
    */
   getEntry(modelTitle, entryID, fields = null, levels = 1, transformFunction) {
     return Promise.resolve()
-    .then(() => {
-      if (typeof modelTitle !== 'string' || !modelTitle) {
-        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
-      }
-      let validatedEntryID = entryID;
-      if (typeof entryID === 'object' && 'id' in entryID) {
-        validatedEntryID = entryID.id;
-      }
-      if (typeof validatedEntryID !== 'string' || !validatedEntryID) {
-        throw new Error(`entryID '${validatedEntryID}' given to dmCache.getEntry is invalid!`);
-      }
-      if (transformFunction && typeof transformFunction !== 'function') {
-        throw new Error('transformFunction given to dmCache.getEntry is invalid!');
-      }
-      const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
-      const levelsString = levels > 1 ? levels : false;
-      let key = [modelTitle, validatedEntryID, fieldsString, levelsString].filter(x => !!x);
-      if (this[namespaceSymbol]) {
-        key.unshift(this[namespaceSymbol]);
-      }
-      key = key.join('|');
-      return this[cacheSymbol].getEntry(key)
-      .then((cachedEntry) => {
-        if (cachedEntry) {
-          if (this.appendSource) {
-            cachedEntry.dmCacheHitFrom = 'cache';
-          }
-          return cachedEntry;
+      .then(() => {
+        if (typeof modelTitle !== 'string' || !modelTitle) {
+          throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
         }
-        return this[dataManagerSymbol].getEntry(modelTitle, validatedEntryID, { fields, levels })
-        .then((entryResult) => {
-          let linkedEntries = [];
-          if (levels > 1) {
-            linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
-          }
-          this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
-          if (this[eventSourceSymbol]) {
-            this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID);
-            linkedEntries.map(toWatch => this[eventSourceSymbol].watchEntry(...toWatch));
-          }
-          if (this.appendSource) {
-            entryResult.dmCacheHitFrom = 'source';
-          }
-          return entryResult;
-        });
-      })
-      .then((result) => {
-        if (transformFunction) {
-          return transformFunction(result);
+        let validatedEntryID = entryID;
+        if (typeof entryID === 'object' && 'id' in entryID) {
+          validatedEntryID = entryID.id;
         }
-        return result;
+        if (typeof validatedEntryID !== 'string' || !validatedEntryID) {
+          throw new Error(`entryID '${validatedEntryID}' given to dmCache.getEntry is invalid!`);
+        }
+        if (transformFunction && typeof transformFunction !== 'function') {
+          throw new Error('transformFunction given to dmCache.getEntry is invalid!');
+        }
+        const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
+        const levelsString = levels > 1 ? levels : false;
+        let key = [modelTitle, validatedEntryID, fieldsString, levelsString].filter(x => !!x);
+        if (this[namespaceSymbol]) {
+          key.unshift(this[namespaceSymbol]);
+        }
+        key = key.join('|');
+        return this[cacheSymbol].getEntry(key)
+          .then((cachedEntry) => {
+            if (cachedEntry) {
+              if (this.appendSource) {
+                cachedEntry.dmCacheHitFrom = 'cache';
+              }
+              return cachedEntry;
+            }
+            return this[dataManagerSymbol].getEntry(modelTitle, validatedEntryID, { fields, levels })
+              .then((entryResult) => {
+                let linkedEntries = [];
+                if (levels > 1) {
+                  linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
+                }
+                this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
+                if (this[eventSourceSymbol]) {
+                  this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID);
+                  linkedEntries.map(toWatch => this[eventSourceSymbol].watchEntry(...toWatch));
+                }
+                if (this.appendSource) {
+                  entryResult.dmCacheHitFrom = 'source';
+                }
+                return entryResult;
+              });
+          })
+          .then((result) => {
+            if (transformFunction) {
+              return transformFunction(result);
+            }
+            return result;
+          });
       });
-    });
   }
 
   getStats() {
@@ -166,6 +176,10 @@ class DMCache {
 
   watchModel(modelTitle) {
     return this[eventSourceSymbol] ? this[eventSourceSymbol].watchModel(modelTitle) : false;
+  }
+
+  destroy() {
+    this[cacheSymbol].destroy();
   }
 }
 
