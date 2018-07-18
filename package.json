@@ -23,6 +23,6 @@
   },
   "dependencies": {
     "cache-manager": "^2.9.0",
-    "cache-manager-redis-store": "^1.5.0"
+    "cache-manager-redis-store": "entrecode/node-cache-manager-redis-store"
   }
 }

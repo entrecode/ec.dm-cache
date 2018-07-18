@@ -17,6 +17,7 @@ class DMCache {
     cacheSize,
     timeToLive,
     redisConfig,
+    redisClient,
     namespace,
   }) {
     if (!dataManagerInstance && !sdkInstance) {
@@ -36,7 +37,9 @@ class DMCache {
       this[namespaceSymbol] = namespace;
     }
 
-    const redis = {};
+    const redis = {
+      active: false,
+    };
     if (redisConfig) {
       Object.assign(redis, redisConfig);
       if ('namespace' in redisConfig) {
@@ -45,7 +48,7 @@ class DMCache {
       }
     }
 
-    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive, redis);
+    this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive, redis, redisClient);
   }
 
   get eventEmitter() {
