@@ -32,7 +32,46 @@ Add this line to your package.json dependencies:
 (check the version number)
 And `npm install` it.
 
-## Usage:
+## Usage with `ec.amqp` and `ec.sdk`:
+
+```js
+const DMCache = require('ec.dm-cache');
+const amqp = require('ec.amqp');
+const { PublicAPI } = require('ec.sdk');
+
+// connect to Data Manager
+const dataManager = new PublicAPI(config.dm.shortID, { environment: config.dm.env, noCookie: true }, true);
+
+// create RabbitMQ Channel
+return Promise.resolve()
+.then(() => amqp.plainChannel('publicAPI'))
+.then((rabbitMQChannel) => {
+  // create DMCache instance
+  const dmCache = new DMCache({
+    dataManagerInstance: dataManager,
+    rabbitMQChannel,
+    // optional redis config
+    redisConfig: {
+      active: true,
+      host: 'localhost',
+      db: 0
+    },
+    namespace: 'myproject',
+    cacheSize: 1000, // max items in cache
+    appendSource: false, // set to true to append property 'dmCacheHitFrom' to each response
+  });
+  
+  // get an entry
+  return dmCache.getEntry('myModel', 'myEntryID')
+  .then((entry) => {
+      // you got your entry
+  })
+})
+.catch(console.error);
+
+```
+
+## (Legacy) usage with `amqp-connection-manager` and `ec.datamanager`:
 
 ```js
 const DMCache = require('ec.dm-cache');
