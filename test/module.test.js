@@ -303,7 +303,7 @@ describe('dm-cache module', () => {
 
   it('stats method', () => dmCache.getStats()
   .then((stats) => {
-    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache', 'itemsInConfigCache']);
     expect(stats).to.have.property('maxCacheSize', 1000);
   }));
 });
@@ -577,7 +577,7 @@ describe('dm-cache module without rabbitMQ', () => {
 
   it('stats method', () => dmCache.getStats()
   .then((stats) => {
-    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache']);
+    expect(stats).to.have.all.keys(['maxCacheSize', 'timeToLive', 'itemsInEntryCache', 'itemsInModelCache', 'itemsInConfigCache']);
     expect(stats).to.have.property('maxCacheSize', 1000);
   }));
 });
