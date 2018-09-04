@@ -48,7 +48,7 @@ return Promise.resolve()
 .then((rabbitMQChannel) => {
   // create DMCache instance
   const dmCache = new DMCache({
-    dataManagerInstance: dataManager,
+    sdkInstance: dataManager,
     rabbitMQChannel,
     // optional redis config
     redisConfig: {
