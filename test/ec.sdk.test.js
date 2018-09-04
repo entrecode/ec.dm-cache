@@ -8,6 +8,7 @@ const expect = chai.expect;
 chai.use(sinonChai);
 
 const sdkMock = {
+  shortID: '76de6263',
   entry: sinon.spy((model, entryID, options) => Promise.resolve()),
   entryList: sinon.spy((model, options) => Promise.resolve()),
 };

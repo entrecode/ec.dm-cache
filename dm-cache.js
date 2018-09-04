@@ -169,6 +169,40 @@ class DMCache {
       });
   }
 
+  getDMConfig() {
+    return Promise.resolve()
+      .then(() => {
+        if (!('getDMConfig' in this[dataManagerSymbol])) {
+          throw new Error('getDMConfig only available with ec.sdk');
+        }
+
+        let key = ['config'];
+        if (this[namespaceSymbol]) {
+          key.unshift(this[namespaceSymbol]);
+        }
+        key = key.join('|');
+
+        return this[cacheSymbol].getDMConfig(key)
+          .then((cachedConfig) => {
+            if (cachedConfig) {
+              if (this.appendSource) {
+                Object.assign(cachedConfig, { dmCacheHitFrom: 'cache' });
+              }
+              return cachedConfig;
+            }
+
+            return this[dataManagerSymbol].getDMConfig()
+              .then((config) => {
+                this[cacheSymbol].putDMConfig(key, config);
+                if (this.appendSource) {
+                  Object.assign(config, { dmCacheHitFrom: 'source' });
+                }
+                return config;
+              });
+          });
+      });
+  }
+
   getStats() {
     return this[cacheSymbol].getStats();
   }

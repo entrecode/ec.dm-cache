@@ -157,6 +157,10 @@ You may optionally supply an options object for filtering etc.
 Returns a status JSON (as Promise), including the settings for `cacheSize` and the current sizes
 of the two caches.
 
+### `dmCache.getDMConfig()`
+
+Returns the public config for the connected datamanager. Only works when using dm-cache with ec.sdk.
+
 ### `dmCache.eventEmitter`
 
 #### `channelOpen`
