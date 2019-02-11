@@ -16,7 +16,7 @@ describe('dm-cache module', () => {
 
     dmCache = new DMCache({
       dataManagerInstance: { id: 'abcdefgh' },
-      rabbitMQChannel: { assertQueue: () => Promise.reject() },
+      rabbitMQChannel: { addSetup: () => Promise.reject() },
       appendSource: false,
     });
     Object.getOwnPropertySymbols(dmCache).forEach((symbol) => {
