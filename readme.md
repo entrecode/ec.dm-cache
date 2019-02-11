@@ -26,7 +26,7 @@ individual DMCache instances in a single redis db, or you can use `redisConfig.d
 Add this line to your package.json dependencies: 
 
 ```
-    "ec.dm-cache": "entrecode/ec.dm-cache.git#semver:^0.5.0",
+    "ec.dm-cache": "entrecode/ec.dm-cache.git#semver:^0.8.0",
 ```
 
 (check the version number)
@@ -36,7 +36,7 @@ And `npm install` it.
 
 ```js
 const DMCache = require('ec.dm-cache');
-const amqp = require('ec.amqp');
+const amqp = require('ec.amqp'); // Has to be 0.4.0 since ec.dm-cache 0.8.0
 const { PublicAPI } = require('ec.sdk');
 
 // connect to Data Manager
@@ -45,7 +45,7 @@ const dataManager = new PublicAPI(config.dm.shortID, { environment: config.dm.en
 // create RabbitMQ Channel
 return Promise.resolve()
 .then(() => amqp.plainChannel('publicAPI'))
-.then((rabbitMQChannel) => {
+.then((rabbitMQChannel) => { // NOTE: Since 0.8.0 this expects a amqp-connection-manager ChannelWrapper (ec.amqp 0.4.0)
   // create DMCache instance
   const dmCache = new DMCache({
     sdkInstance: dataManager,
@@ -71,7 +71,7 @@ return Promise.resolve()
 
 ```
 
-## (Legacy) usage with `amqp-connection-manager` and `ec.datamanager`:
+## (Legacy) usage with `amqp-connection-manager` and `ec.datamanager` (only works with ec.dm-cache#<0.8.0):
 
 ```js
 const DMCache = require('ec.dm-cache');
@@ -133,7 +133,7 @@ The constructor expects an option object with the following properties:
 
 - `dataManagerInstance` set ready datamanager.js instance to use *(required, or sdkInstace)*
 - `sdkInstance` set ready ec.sdk instance to use instead of datamanger *(required, orDataManagerInstance)*
-- `rabbitMQChannel` give a connected rabbitMQ channel connected to the publicAPI exchange
+- `rabbitMQChannel` give a connected rabbitMQ channelWrapper from amqp-connection-manager connected to the publicAPI exchange
 - `redisConfig` add redis connectivity for caching ({ active: boolean, host: string, port: number, db: number, namespace: string })
 - `appendSource` (Boolean) flag to show/hide the `dmCacheHitFrom' flag in responses *(Default: false)*
 - `cacheSize` (Integer) max number of items to be hold in each cache *(Default: 1000)*
