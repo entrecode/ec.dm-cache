@@ -79,6 +79,12 @@ const channelMock = {
   },
   ack: sinon.spy(),
 };
+const channelWrapperMock = {
+  addSetup: (callback) => {
+    callback(channelMock);
+  },
+  removeSetup: () => {},
+};
 
 function simulateAMQPMessage(modelTitle, entryID, type) {
   const event = JSON.stringify({ modelTitle, entryID });
@@ -86,8 +92,10 @@ function simulateAMQPMessage(modelTitle, entryID, type) {
     content: Buffer.from(event, 'utf8'),
     properties: { type },
   };
-  if ((subscribedFullModels.has(modelTitle) || subscribedEntries.has(modelTitle + entryID))
-    && eventListener && typeof eventListener === 'function'
+  if (
+    (subscribedFullModels.has(modelTitle) || subscribedEntries.has(modelTitle + entryID)) &&
+    eventListener &&
+    typeof eventListener === 'function'
   ) {
     eventListener(message);
   } else {
@@ -116,7 +124,7 @@ describe('eventsource-amqp.js', () => {
     done();
   });
   it('setRabbitMQChannel', (done) => {
-    eventSource.rabbitMQChannel = channelMock;
+    eventSource.rabbitMQChannel = channelWrapperMock;
     expect(channelMock.assertQueue).to.have.been.calledOnce;
     setImmediate(() => {
       expect(channelMock.consume).to.have.been.calledOnce;
@@ -125,7 +133,7 @@ describe('eventsource-amqp.js', () => {
   });
   describe('watchModel', () => {
     before(() => {
-      eventSource.rabbitMQChannel = channelMock;
+      eventSource.rabbitMQChannel = channelWrapperMock;
       eventSource.watchModel('test1');
     });
     it('event is fired and message ACKed', (done) => {
@@ -142,14 +150,14 @@ describe('eventsource-amqp.js', () => {
       simulateAMQPMessage('test1', 'myentry', 'mytype');
     });
     it('event to other model is ignored', (done) => {
-      eventSource.eventEmitter.once('entryUpdated', x => done(new Error(`event was fired: ${JSON.stringify(x)}`)));
+      eventSource.eventEmitter.once('entryUpdated', (x) => done(new Error(`event was fired: ${JSON.stringify(x)}`)));
       simulateAMQPMessage('test2', 'myentry', 'mytype');
       setTimeout(done, 1500);
     });
   });
   describe('watchEntry', () => {
     before(() => {
-      eventSource.rabbitMQChannel = channelMock;
+      eventSource.rabbitMQChannel = channelWrapperMock;
       eventSource.watchEntry('test3', 'watchedE');
     });
     it('event is fired and message ACKed', (done) => {
@@ -194,7 +202,7 @@ describe('eventsource-amqp.js', () => {
   });
   describe('watchEntry after watchModel', () => {
     before(() => {
-      eventSource.rabbitMQChannel = channelMock;
+      eventSource.rabbitMQChannel = channelWrapperMock;
       eventSource.watchModel('test1');
     });
     it('watchEntry is ignored, but works', (done) => {
@@ -211,7 +219,7 @@ describe('eventsource-amqp.js', () => {
   });
   describe('watchModel after watchEntry', () => {
     before(() => {
-      eventSource.rabbitMQChannel = channelMock;
+      eventSource.rabbitMQChannel = channelWrapperMock;
       eventSource.watchEntry('test4', 'watchedE');
     });
     it('watchModel replaces watchEntry', (done) => {
