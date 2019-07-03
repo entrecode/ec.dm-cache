@@ -2,7 +2,7 @@ const sinon = require('sinon');
 const chai = require('chai');
 const sinonChai = require('sinon-chai');
 
-const expect = chai.expect;
+const { expect } = chai;
 chai.use(sinonChai);
 const expectedDMID = 'abcdef01';
 
@@ -78,6 +78,7 @@ const channelMock = {
     }
   },
   ack: sinon.spy(),
+  on: sinon.spy(),
 };
 const channelWrapperMock = {
   addSetup: (callback) => {
