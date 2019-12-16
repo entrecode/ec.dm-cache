@@ -47,12 +47,14 @@ const channelMock = {
         return Promise.reject(new Error(`double model subscribe: ${model}`));
       }
       subscribedFullModels.add(model);
-    } else {
-      if (subscribedEntries.has(model + entry)) {
-        return Promise.reject(new Error(`double entry subscribe: ${model}${entry}`));
-      }
-      subscribedEntries.add(model + entry);
+      return Promise.resolve();
     }
+
+    if (subscribedEntries.has(model + entry)) {
+      return Promise.reject(new Error(`double entry subscribe: ${model}${entry}`));
+    }
+    subscribedEntries.add(model + entry);
+    return Promise.resolve();
   },
   unbindQueue(queue, exchange, key) {
     if (queue !== queueMock) {
@@ -70,12 +72,14 @@ const channelMock = {
         return Promise.reject(new Error(`model not found for unsubscribe: ${model}`));
       }
       subscribedFullModels.delete(model);
-    } else {
-      if (!subscribedEntries.has(model + entry)) {
-        return Promise.reject(new Error(`entry not found for subscribe: ${model}${entry}`));
-      }
-      subscribedEntries.delete(model + entry);
+      return Promise.resolve();
     }
+
+    if (!subscribedEntries.has(model + entry)) {
+      return Promise.reject(new Error(`entry not found for subscribe: ${model}${entry}`));
+    }
+    subscribedEntries.delete(model + entry);
+    return Promise.resolve();
   },
   ack: sinon.spy(),
   on: sinon.spy(),
@@ -83,8 +87,9 @@ const channelMock = {
 const channelWrapperMock = {
   addSetup: (callback) => {
     callback(channelMock);
+    return Promise.resolve();
   },
-  removeSetup: () => {},
+  removeSetup: () => Promise.resolve(),
 };
 
 function simulateAMQPMessage(modelTitle, entryID, type) {
