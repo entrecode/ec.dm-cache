@@ -51,6 +51,10 @@ class DMCache {
     this[cacheSymbol] = new Cache(this.eventEmitter, cacheSize, timeToLive, redis, redisClient);
   }
 
+  get sdk() {
+    return this[dataManagerSymbol].sdk;
+  }
+
   get eventEmitter() {
     return this[eventSourceSymbol] ? this[eventSourceSymbol].eventEmitter : false;
   }
