@@ -1,9 +1,11 @@
 const sinon = require('sinon');
 const chai = require('chai');
 const sinonChai = require('sinon-chai');
+const chaiAsPromised = require('chai-as-promised');
 
 const { expect } = chai;
 chai.use(sinonChai);
+chai.use(chaiAsPromised);
 const expectedDMID = 'abcdef01';
 
 const queueMock = {};
@@ -12,7 +14,7 @@ const subscribedEntries = new Set();
 let eventListener;
 const channelMock = {
   assertQueue: sinon.spy((name, options) => {
-    if (name === '' && options.exclusive) {
+    if (name.startsWith('cache-') && options.exclusive) {
       return Promise.resolve({
         queue: queueMock,
       });
@@ -81,7 +83,6 @@ const channelMock = {
     subscribedEntries.delete(model + entry);
     return Promise.resolve();
   },
-  ack: sinon.spy(),
   on: sinon.spy(),
 };
 const channelWrapperMock = {
@@ -89,7 +90,12 @@ const channelWrapperMock = {
     callback(channelMock);
     return Promise.resolve();
   },
-  removeSetup: () => Promise.resolve(),
+  removeSetup: (_fkt, callback) => {
+    callback(channelMock);
+    return Promise.resolve();
+  },
+  ack: sinon.spy(),
+  on: sinon.spy(),
 };
 
 function simulateAMQPMessage(modelTitle, entryID, type) {
@@ -121,13 +127,12 @@ describe('eventsource-amqp.js', () => {
   beforeEach(() => {
     channelMock.assertQueue.resetHistory();
     channelMock.assertExchange.resetHistory();
-    channelMock.ack.resetHistory();
     channelMock.consume.resetHistory();
+    channelWrapperMock.ack.resetHistory();
     eventSource.eventEmitter.removeAllListeners();
   });
-  it('set nothing throws', (done) => {
-    expect(() => eventSource.watchModel('test1')).to.throw('missing AMQP Channel and Queue');
-    done();
+  it('set nothing throws', () => {
+    return expect(eventSource.watchModel('test1')).to.be.rejectedWith('missing AMQP Channel and Queue');
   });
   it('setRabbitMQChannel', (done) => {
     eventSource.rabbitMQChannel = channelWrapperMock;
@@ -148,8 +153,8 @@ describe('eventsource-amqp.js', () => {
         expect(modelTitle).to.eql('test1');
         expect(entryID).to.eql('myentry');
         setImmediate(() => {
-          expect(channelMock.ack).to.have.been.called;
-          expect(channelMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
+          expect(channelWrapperMock.ack).to.have.been.called;
+          expect(channelWrapperMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
           done();
         });
       });
@@ -162,9 +167,9 @@ describe('eventsource-amqp.js', () => {
     });
   });
   describe('watchEntry', () => {
-    before(() => {
+    before(async () => {
       eventSource.rabbitMQChannel = channelWrapperMock;
-      eventSource.watchEntry('test3', 'watchedE');
+      await eventSource.watchEntry('test3', 'watchedE');
     });
     it('event is fired and message ACKed', (done) => {
       eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
@@ -172,8 +177,8 @@ describe('eventsource-amqp.js', () => {
         expect(modelTitle).to.eql('test3');
         expect(entryID).to.eql('watchedE');
         setImmediate(() => {
-          expect(channelMock.ack).to.have.been.called;
-          expect(channelMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
+          expect(channelWrapperMock.ack).to.have.been.called;
+          expect(channelWrapperMock.ack).to.have.nested.property('args.0.0.properties.type', 'mytype');
           done();
         });
       });
@@ -189,21 +194,19 @@ describe('eventsource-amqp.js', () => {
       simulateAMQPMessage('test3', 'notwatchedE', 'mytype');
       setTimeout(done, 1500);
     });
-    it('duplicate watchEntry is ignored', (done) => {
+    it('duplicate watchEntry is ignored', async () => {
       const modelsBefore = [...subscribedFullModels];
       const entriesBefore = [...subscribedEntries];
-      eventSource.watchEntry('test3', 'watchedE');
-      eventSource.watchEntry('test3', 'watchedE');
+      await eventSource.watchEntry('test3', 'watchedE');
+      await eventSource.watchEntry('test3', 'watchedE');
       expect([...subscribedEntries]).to.eql(entriesBefore);
       expect([...subscribedFullModels]).to.eql(modelsBefore);
-      done();
     });
-    it('watch another entry works', (done) => {
+    it('watch another entry works', async () => {
       const entriesBefore = [...subscribedEntries];
-      eventSource.watchEntry('test3', 'watchedE');
-      eventSource.watchEntry('test3', 'otherE');
+      await eventSource.watchEntry('test3', 'watchedE');
+      await eventSource.watchEntry('test3', 'otherE');
       expect([...subscribedEntries]).to.eql(entriesBefore.concat(['test3otherE']));
-      done();
     });
   });
   describe('watchEntry after watchModel', () => {
@@ -211,34 +214,38 @@ describe('eventsource-amqp.js', () => {
       eventSource.rabbitMQChannel = channelWrapperMock;
       eventSource.watchModel('test1');
     });
-    it('watchEntry is ignored, but works', (done) => {
-      eventSource.watchEntry('test1', 'watchedE');
-      eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
-        expect(type).to.eql('mytype');
-        expect(modelTitle).to.eql('test1');
-        expect(entryID).to.eql('watchedE');
-        done();
-      });
+    it('watchEntry is ignored, but works', async () => {
+      await eventSource.watchEntry('test1', 'watchedE');
       expect(subscribedEntries.has('test1watchedE')).to.be.not.ok;
-      simulateAMQPMessage('test1', 'watchedE', 'mytype');
+      await new Promise((resolve) => {
+        eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
+          expect(type).to.eql('mytype');
+          expect(modelTitle).to.eql('test1');
+          expect(entryID).to.eql('watchedE');
+          resolve();
+        });
+        simulateAMQPMessage('test1', 'watchedE', 'mytype');
+      })
     });
   });
   describe('watchModel after watchEntry', () => {
-    before(() => {
+    before(async () => {
       eventSource.rabbitMQChannel = channelWrapperMock;
-      eventSource.watchEntry('test4', 'watchedE');
+      await eventSource.watchEntry('test4', 'watchedE');
     });
-    it('watchModel replaces watchEntry', (done) => {
+    it('watchModel replaces watchEntry', async () => {
       expect(subscribedEntries.has('test4watchedE')).to.be.ok;
-      eventSource.watchModel('test4');
-      eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
-        expect(type).to.eql('mytype');
-        expect(modelTitle).to.eql('test4');
-        expect(entryID).to.eql('watchedE');
-        done();
+      await eventSource.watchModel('test4');
+      await new Promise((resolve) => {
+        eventSource.eventEmitter.once('entryUpdated', ({ type, modelTitle, entryID }) => {
+          // expect(subscribedEntries.has('test4watchedE')).to.be.not.ok;
+          expect(type).to.eql('mytype');
+          expect(modelTitle).to.eql('test4');
+          expect(entryID).to.eql('watchedE');
+          resolve();
+        });
+        simulateAMQPMessage('test4', 'watchedE', 'mytype');
       });
-      expect(subscribedEntries.has('test4watchedE')).to.be.not.ok;
-      simulateAMQPMessage('test4', 'watchedE', 'mytype');
     });
   });
 });

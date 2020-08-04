@@ -74,37 +74,34 @@ class DMCache {
   }
 
   getEntries(modelTitle, options) {
-    return Promise.resolve()
-      .then(() => {
-        if (typeof modelTitle !== 'string' || !modelTitle) {
-          throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
+    return Promise.resolve().then(() => {
+      if (typeof modelTitle !== 'string' || !modelTitle) {
+        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntries is invalid!`);
+      }
+      let key = [modelTitle, JSON.stringify(options)];
+      if (this[namespaceSymbol]) {
+        key.unshift(this[namespaceSymbol]);
+      }
+      key = key.join('|');
+      return this[cacheSymbol].getEntries(key).then((cachedEntries) => {
+        if (cachedEntries) {
+          if (this.appendSource) {
+            cachedEntries.dmCacheHitFrom = 'cache';
+          }
+          return cachedEntries;
         }
-        let key = [modelTitle, JSON.stringify(options)];
-        if (this[namespaceSymbol]) {
-          key.unshift(this[namespaceSymbol]);
-        }
-        key = key.join('|');
-        return this[cacheSymbol].getEntries(key)
-          .then((cachedEntries) => {
-            if (cachedEntries) {
-              if (this.appendSource) {
-                cachedEntries.dmCacheHitFrom = 'cache';
-              }
-              return cachedEntries;
-            }
-            return this[dataManagerSymbol].getEntries(modelTitle, options)
-              .then((entriesResult) => {
-                this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
-                if (this[eventSourceSymbol]) {
-                  this[eventSourceSymbol].watchModel(modelTitle);
-                }
-                if (this.appendSource) {
-                  entriesResult.dmCacheHitFrom = 'source';
-                }
-                return entriesResult;
-              });
-          });
+        return this[dataManagerSymbol].getEntries(modelTitle, options).then((entriesResult) => {
+          this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
+          if (this[eventSourceSymbol]) {
+            this[eventSourceSymbol].watchModel(modelTitle);
+          }
+          if (this.appendSource) {
+            entriesResult.dmCacheHitFrom = 'source';
+          }
+          return entriesResult;
+        });
       });
+    });
   }
 
   /**
@@ -117,94 +114,97 @@ class DMCache {
    * @return {Promise.<Entry>}         Entry Value
    */
   getEntry(modelTitle, entryID, fields = null, levels = 1, transformFunction) {
-    return Promise.resolve()
-      .then(() => {
-        if (typeof modelTitle !== 'string' || !modelTitle) {
-          throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
-        }
-        let validatedEntryID = entryID;
-        if (typeof entryID === 'object' && 'id' in entryID) {
-          validatedEntryID = entryID.id;
-        }
-        if (typeof validatedEntryID !== 'string' || !validatedEntryID) {
-          throw new Error(`entryID '${validatedEntryID}' given to dmCache.getEntry is invalid!`);
-        }
-        if (transformFunction && typeof transformFunction !== 'function') {
-          throw new Error('transformFunction given to dmCache.getEntry is invalid!');
-        }
-        const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
-        const levelsString = levels > 1 ? levels : false;
-        let key = [modelTitle, validatedEntryID, fieldsString, levelsString].filter(x => !!x);
-        if (this[namespaceSymbol]) {
-          key.unshift(this[namespaceSymbol]);
-        }
-        key = key.join('|');
-        return this[cacheSymbol].getEntry(key)
-          .then((cachedEntry) => {
-            if (cachedEntry) {
-              if (this.appendSource) {
-                cachedEntry.dmCacheHitFrom = 'cache';
+    return Promise.resolve().then(() => {
+      if (typeof modelTitle !== 'string' || !modelTitle) {
+        throw new Error(`modelTitle '${modelTitle}' given to dmCache.getEntry is invalid!`);
+      }
+      let validatedEntryID = entryID;
+      if (typeof entryID === 'object' && 'id' in entryID) {
+        validatedEntryID = entryID.id;
+      }
+      if (typeof validatedEntryID !== 'string' || !validatedEntryID) {
+        throw new Error(`entryID '${validatedEntryID}' given to dmCache.getEntry is invalid!`);
+      }
+      if (transformFunction && typeof transformFunction !== 'function') {
+        throw new Error('transformFunction given to dmCache.getEntry is invalid!');
+      }
+      const fieldsString = Array.isArray(fields) ? JSON.stringify(fields) : false;
+      const levelsString = levels > 1 ? levels : false;
+      let key = [modelTitle, validatedEntryID, fieldsString, levelsString].filter((x) => !!x);
+      if (this[namespaceSymbol]) {
+        key.unshift(this[namespaceSymbol]);
+      }
+      key = key.join('|');
+      return this[cacheSymbol]
+        .getEntry(key)
+        .then((cachedEntry) => {
+          if (cachedEntry) {
+            if (this.appendSource) {
+              cachedEntry.dmCacheHitFrom = 'cache';
+            }
+            return cachedEntry;
+          }
+          return this[dataManagerSymbol]
+            .getEntry(modelTitle, validatedEntryID, { fields, levels })
+            .then((entryResult) => {
+              let linkedEntries = [];
+              if (levels > 1) {
+                linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
               }
-              return cachedEntry;
-            }
-            return this[dataManagerSymbol].getEntry(modelTitle, validatedEntryID, { fields, levels })
-              .then((entryResult) => {
-                let linkedEntries = [];
-                if (levels > 1) {
-                  linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
-                }
-                this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
-                if (this[eventSourceSymbol]) {
-                  this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID);
-                  linkedEntries.map(toWatch => this[eventSourceSymbol].watchEntry(...toWatch));
-                }
-                if (this.appendSource) {
-                  entryResult.dmCacheHitFrom = 'source';
-                }
-                return entryResult;
-              });
-          })
-          .then((result) => {
-            if (transformFunction) {
-              return transformFunction(result);
-            }
-            return result;
-          });
-      });
+              this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
+              if (this[eventSourceSymbol]) {
+                Promise.all([
+                  this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID),
+                  ...linkedEntries.map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch)),
+                ]).catch((err) => {
+                  Object.assign(err, { message: `Could not watch Entry: ${err.message}` });
+                  console.error(err);
+                });
+              }
+              if (this.appendSource) {
+                entryResult.dmCacheHitFrom = 'source';
+              }
+              return entryResult;
+            });
+        })
+        .then((result) => {
+          if (transformFunction) {
+            return transformFunction(result);
+          }
+          return result;
+        });
+    });
   }
 
   getDMConfig() {
-    return Promise.resolve()
-      .then(() => {
-        if (!('getDMConfig' in this[dataManagerSymbol])) {
-          throw new Error('getDMConfig only available with ec.sdk');
+    return Promise.resolve().then(() => {
+      if (!('getDMConfig' in this[dataManagerSymbol])) {
+        throw new Error('getDMConfig only available with ec.sdk');
+      }
+
+      let key = ['config'];
+      if (this[namespaceSymbol]) {
+        key.unshift(this[namespaceSymbol]);
+      }
+      key = key.join('|');
+
+      return this[cacheSymbol].getDMConfig(key).then((cachedConfig) => {
+        if (cachedConfig) {
+          if (this.appendSource) {
+            Object.assign(cachedConfig, { dmCacheHitFrom: 'cache' });
+          }
+          return cachedConfig;
         }
 
-        let key = ['config'];
-        if (this[namespaceSymbol]) {
-          key.unshift(this[namespaceSymbol]);
-        }
-        key = key.join('|');
-
-        return this[cacheSymbol].getDMConfig(key)
-          .then((cachedConfig) => {
-            if (cachedConfig) {
-              if (this.appendSource) {
-                Object.assign(cachedConfig, { dmCacheHitFrom: 'cache' });
-              }
-              return cachedConfig;
-            }
-
-            return this[dataManagerSymbol].getDMConfig()
-              .then((config) => {
-                this[cacheSymbol].putDMConfig(key, config);
-                if (this.appendSource) {
-                  Object.assign(config, { dmCacheHitFrom: 'source' });
-                }
-                return config;
-              });
-          });
+        return this[dataManagerSymbol].getDMConfig().then((config) => {
+          this[cacheSymbol].putDMConfig(key, config);
+          if (this.appendSource) {
+            Object.assign(config, { dmCacheHitFrom: 'source' });
+          }
+          return config;
+        });
       });
+    });
   }
 
   getStats() {
