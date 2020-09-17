@@ -34,9 +34,6 @@ const channelMock = {
     return Promise.reject(new Error('unallowed assertExchange parameters'));
   }),
   bindQueue(queue, exchange, key) {
-    if (queue !== queueMock) {
-      return Promise.reject(new Error('wrong queue given to bindQueue'));
-    }
     if (exchange !== 'publicAPI') {
       return Promise.reject(new Error('wrong exchange name given to bindQueue'));
     }
