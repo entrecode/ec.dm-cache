@@ -87,6 +87,7 @@ class DMCache {
         .getEntries(key)
         .then((cachedEntries) => {
           if (cachedEntries) {
+            this[cacheSymbol].ensureKeyIsInModelCacheMap(key, modelTitle);
             if (this.appendSource) {
               Object.assign(cachedEntries, { dmCacheHitFrom: 'cache' });
             }
@@ -159,6 +160,8 @@ class DMCache {
           }
           if (dmCacheHitFrom === 'source') {
             this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
+          } else {
+            this[cacheSymbol].ensureKeyIsInEntryCacheMap(key, modelTitle, validatedEntryID, linkedEntries);
           }
           if (this[eventSourceSymbol]) {
             Promise.all([
