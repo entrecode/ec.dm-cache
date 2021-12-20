@@ -148,7 +148,7 @@ describe('dm-cache module', () => {
           expect(cache.getEntries).to.have.been.calledWith('testModel2|{"size":1}');
           expect(cache.putEntries).to.have.not.been.called;
           expect(datamanager.getEntries).to.have.not.been.called;
-          expect(eventSource.watchModel).to.have.not.been.called;
+          expect(eventSource.watchModel).to.have.been.calledWith('testModel2');
         }));
     it('appendSource (returns from cache)', () =>
       dmCache
@@ -216,7 +216,7 @@ describe('dm-cache module', () => {
           expect(result.id).to.eql('4');
           expect(datamanager.getEntry).to.have.not.been.called;
           expect(cache.putEntry).to.have.not.been.called;
-          expect(eventSource.watchEntry).to.have.not.been.called;
+          expect(eventSource.watchEntry).to.have.been.calledWith('testModel3', 'entry1');
         }));
     it('appendSource (returns from cache)', () =>
       dmCache

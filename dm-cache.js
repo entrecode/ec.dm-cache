@@ -83,24 +83,29 @@ class DMCache {
         key.unshift(this[namespaceSymbol]);
       }
       key = key.join('|');
-      return this[cacheSymbol].getEntries(key).then((cachedEntries) => {
-        if (cachedEntries) {
-          if (this.appendSource) {
-            cachedEntries.dmCacheHitFrom = 'cache';
+      return this[cacheSymbol]
+        .getEntries(key)
+        .then((cachedEntries) => {
+          if (cachedEntries) {
+            if (this.appendSource) {
+              Object.assign(cachedEntries, { dmCacheHitFrom: 'cache' });
+            }
+            return cachedEntries;
           }
-          return cachedEntries;
-        }
-        return this[dataManagerSymbol].getEntries(modelTitle, options).then((entriesResult) => {
-          this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
+          return this[dataManagerSymbol].getEntries(modelTitle, options).then((entriesResult) => {
+            this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
+            if (this.appendSource) {
+              Object.assign(entriesResult, { dmCacheHitFrom: 'source' });
+            }
+            return entriesResult;
+          });
+        })
+        .then((entriesResult) => {
           if (this[eventSourceSymbol]) {
             this[eventSourceSymbol].watchModel(modelTitle);
           }
-          if (this.appendSource) {
-            entriesResult.dmCacheHitFrom = 'source';
-          }
           return entriesResult;
         });
-      });
     });
   }
 
@@ -139,33 +144,35 @@ class DMCache {
         .getEntry(key)
         .then((cachedEntry) => {
           if (cachedEntry) {
-            if (this.appendSource) {
-              cachedEntry.dmCacheHitFrom = 'cache';
-            }
-            return cachedEntry;
+            return [cachedEntry, 'cache'];
           }
           return this[dataManagerSymbol]
             .getEntry(modelTitle, validatedEntryID, { fields, levels })
             .then((entryResult) => {
-              let linkedEntries = [];
-              if (levels > 1) {
-                linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
-              }
-              this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
-              if (this[eventSourceSymbol]) {
-                Promise.all([
-                  this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID),
-                  ...linkedEntries.map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch)),
-                ]).catch((err) => {
-                  Object.assign(err, { message: `Could not watch Entry: ${err.message}` });
-                  console.error(err);
-                });
-              }
-              if (this.appendSource) {
-                entryResult.dmCacheHitFrom = 'source';
-              }
-              return entryResult;
+              return [entryResult, 'source'];
             });
+        })
+        .then(([entryResult, dmCacheHitFrom]) => {
+          let linkedEntries = [];
+          if (levels > 1) {
+            linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
+          }
+          if (dmCacheHitFrom === 'source') {
+            this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
+          }
+          if (this[eventSourceSymbol]) {
+            Promise.all([
+              this[eventSourceSymbol].watchEntry(modelTitle, validatedEntryID),
+              ...linkedEntries.map((toWatch) => this[eventSourceSymbol].watchEntry(...toWatch)),
+            ]).catch((err) => {
+              Object.assign(err, { message: `Could not watch Entry: ${err.message}` });
+              console.error(err);
+            });
+          }
+          if (this.appendSource) {
+            Object.assign(entryResult, { dmCacheHitFrom });
+          }
+          return entryResult;
         })
         .then((result) => {
           if (transformFunction) {
