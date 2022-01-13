@@ -95,10 +95,13 @@ class DMCache {
           }
           return this[dataManagerSymbol].getEntries(modelTitle, options).then((entriesResult) => {
             this[cacheSymbol].putEntries(key, modelTitle, entriesResult);
-            if (this.appendSource) {
-              Object.assign(entriesResult, { dmCacheHitFrom: 'source' });
-            }
-            return entriesResult;
+            // we immediately get the entries from cache, so we make sure the result is the same as later
+            return this[cacheSymbol].getEntries(key).then((entriesLoadedFromCache) => {
+              if (this.appendSource) {
+                Object.assign(entriesLoadedFromCache, { dmCacheHitFrom: 'source' });
+              }
+              return entriesLoadedFromCache;
+            });
           });
         })
         .then((entriesResult) => {
@@ -172,10 +175,20 @@ class DMCache {
               console.error(err);
             });
           }
-          if (this.appendSource) {
-            Object.assign(entryResult, { dmCacheHitFrom });
-          }
-          return entryResult;
+          return Promise.resolve()
+            .then(() => {
+              if (dmCacheHitFrom === 'source') {
+                // we get the entry from cache, so we make sure the result is the same as later
+                return this[cacheSymbol].getEntry(key);
+              }
+              return entryResult;
+            })
+            .then((result) => {
+              if (this.appendSource) {
+                Object.assign(result, { dmCacheHitFrom });
+              }
+              return result;
+            });
         })
         .then((result) => {
           if (transformFunction) {
