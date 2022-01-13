@@ -1,6 +1,6 @@
 {
   "name": "ec.dm-cache",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Module for Node.js to cache data manager entries with live updating/invalidation using AMQP. By entrecode.",
   "main": "dm-cache.js",
   "license": "none",
@@ -16,15 +16,16 @@
   "author": "deyhle@entrecode.de",
   "devDependencies": {
     "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
     "istanbul": "^0.4.5",
     "mocha": "^9.1.3",
     "sinon": "^12.0.1",
-    "sinon-chai": "^3.5.0",
-    "chai-as-promised": "^7.1.1"
+    "sinon-chai": "^3.5.0"
   },
   "dependencies": {
     "cache-manager": "^3.3.0",
     "cache-manager-redis-store": "entrecode/node-cache-manager-redis-store#9324d4c09e565b7699c58771119fe5d124330b56",
+    "halfred": "^2.0.0",
     "uuid": "^8.3.0"
   }
 }
