@@ -242,6 +242,10 @@ class DMCache {
     return this[eventSourceSymbol] ? this[eventSourceSymbol].watchModel(modelTitle) : false;
   }
 
+  clear(modelTitle) {
+    this[cacheSymbol].clear(modelTitle);
+  }
+
   destroy() {
     this[cacheSymbol].destroy();
   }
