@@ -15,7 +15,7 @@ describe('dm-cache module', () => {
     const fakeCache = new Map();
 
     dmCache = new DMCache({
-      dataManagerInstance: { id: 'abcdefgh' },
+      sdkInstance: { id: 'abcdefgh' },
       rabbitMQChannel: { addSetup: () => Promise.resolve() },
       appendSource: false,
     });
@@ -306,7 +306,7 @@ describe('dm-cache module', () => {
           new DMCache({
             rabbitMQChannel: true,
           })
-      ).to.throw('missing either `dataManagerInstance` or `sdkInstance`');
+      ).to.throw('missing sdkInstance');
       done();
     });
     it('succeed if SDK instance', (done) => {
@@ -320,7 +320,7 @@ describe('dm-cache module', () => {
     it('appendSource can be set directly', (done) => {
       expect(
         new DMCache({
-          dataManagerInstance: true,
+          sdkInstance: true,
           appendSource: true,
         }).appendSource
       ).to.eql(true);
@@ -349,7 +349,7 @@ describe('dm-cache module without rabbitMQ', () => {
     const fakeCache = new Map();
 
     dmCache = new DMCache({
-      dataManagerInstance: { id: 'abcdefgh' },
+      sdkInstance: { id: 'abcdefgh' },
       appendSource: false,
     });
     Object.getOwnPropertySymbols(dmCache).forEach((symbol) => {
@@ -615,7 +615,7 @@ describe('dm-cache module without rabbitMQ', () => {
           new DMCache({
             rabbitMQChannel: true,
           })
-      ).to.throw('missing either `dataManagerInstance` or `sdkInstance`');
+      ).to.throw('missing sdkInstance');
       done();
     });
     it('succeed if SDK instance', (done) => {
@@ -629,7 +629,7 @@ describe('dm-cache module without rabbitMQ', () => {
     it('appendSource can be set directly', (done) => {
       expect(
         new DMCache({
-          dataManagerInstance: true,
+          sdkInstance: true,
           appendSource: true,
         }).appendSource
       ).to.eql(true);
