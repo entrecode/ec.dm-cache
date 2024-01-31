@@ -15,7 +15,7 @@ describe('dm-cache module', () => {
     const fakeCache = new Map();
 
     dmCache = new DMCache({
-      dataManagerInstance: { id: 'abcdefgh' },
+      sdkInstance: { id: 'abcdefgh' },
       rabbitMQChannel: { addSetup: () => Promise.resolve() },
       appendSource: false,
     });
@@ -64,6 +64,8 @@ describe('dm-cache module', () => {
               ['testModel2', 'entryx'],
               ['testModel3', 'entry0'],
             ];
+          } else {
+            return [];
           }
         });
       }
@@ -170,7 +172,7 @@ describe('dm-cache module', () => {
           (error) => {
             expect(error.message).to.eql("modelTitle 'undefined' given to dmCache.getEntries is invalid!");
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -254,7 +256,7 @@ describe('dm-cache module', () => {
           (error) => {
             expect(error.message).to.eql("modelTitle 'undefined' given to dmCache.getEntry is invalid!");
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -267,7 +269,7 @@ describe('dm-cache module', () => {
           (error) => {
             expect(error.message).to.eql("entryID 'undefined' given to dmCache.getEntry is invalid!");
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -280,7 +282,7 @@ describe('dm-cache module', () => {
           (error) => {
             expect(error.message).to.eql('transformFunction given to dmCache.getEntry is invalid!');
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -305,24 +307,24 @@ describe('dm-cache module', () => {
         () =>
           new DMCache({
             rabbitMQChannel: true,
-          })
-      ).to.throw('missing either `dataManagerInstance` or `sdkInstance`');
+          }),
+      ).to.throw('missing sdkInstance');
       done();
     });
     it('succeed if SDK instance', (done) => {
       expect(
         new DMCache({
           sdkInstance: true,
-        })
+        }),
       ).to.be.instanceOf(DMCache);
       done();
     });
     it('appendSource can be set directly', (done) => {
       expect(
         new DMCache({
-          dataManagerInstance: true,
+          sdkInstance: true,
           appendSource: true,
-        }).appendSource
+        }).appendSource,
       ).to.eql(true);
       done();
     });
@@ -349,7 +351,7 @@ describe('dm-cache module without rabbitMQ', () => {
     const fakeCache = new Map();
 
     dmCache = new DMCache({
-      dataManagerInstance: { id: 'abcdefgh' },
+      sdkInstance: { id: 'abcdefgh' },
       appendSource: false,
     });
     Object.getOwnPropertySymbols(dmCache).forEach((symbol) => {
@@ -397,6 +399,8 @@ describe('dm-cache module without rabbitMQ', () => {
               ['testModel2', 'entryx'],
               ['testModel3', 'entry0'],
             ];
+          } else {
+            return [];
           }
         });
       }
@@ -491,7 +495,7 @@ describe('dm-cache module without rabbitMQ', () => {
           (error) => {
             expect(error.message).to.eql("modelTitle 'undefined' given to dmCache.getEntries is invalid!");
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -563,7 +567,7 @@ describe('dm-cache module without rabbitMQ', () => {
           (error) => {
             expect(error.message).to.eql("modelTitle 'undefined' given to dmCache.getEntry is invalid!");
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -576,7 +580,7 @@ describe('dm-cache module without rabbitMQ', () => {
           (error) => {
             expect(error.message).to.eql("entryID 'undefined' given to dmCache.getEntry is invalid!");
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -589,7 +593,7 @@ describe('dm-cache module without rabbitMQ', () => {
           (error) => {
             expect(error.message).to.eql('transformFunction given to dmCache.getEntry is invalid!');
             return Promise.resolve();
-          }
+          },
         )
         .then(() => {
           expect(cache.getEntries).to.have.not.been.called;
@@ -614,24 +618,24 @@ describe('dm-cache module without rabbitMQ', () => {
         () =>
           new DMCache({
             rabbitMQChannel: true,
-          })
-      ).to.throw('missing either `dataManagerInstance` or `sdkInstance`');
+          }),
+      ).to.throw('missing sdkInstance');
       done();
     });
     it('succeed if SDK instance', (done) => {
       expect(
         new DMCache({
           sdkInstance: true,
-        })
+        }),
       ).to.be.instanceOf(DMCache);
       done();
     });
     it('appendSource can be set directly', (done) => {
       expect(
         new DMCache({
-          dataManagerInstance: true,
+          sdkInstance: true,
           appendSource: true,
-        }).appendSource
+        }).appendSource,
       ).to.eql(true);
       done();
     });

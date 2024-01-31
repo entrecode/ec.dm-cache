@@ -131,8 +131,8 @@ return new Promise((resolve, reject) => {
 ### `new DMCache(options)`
 The constructor expects an option object with the following properties:
 
-- `dataManagerInstance` set ready datamanager.js instance to use *(required, or sdkInstace)*
-- `sdkInstance` set ready ec.sdk instance to use instead of datamanger *(required, orDataManagerInstance)*
+- `dataManagerInstance` *DEPRECATED* set ready datamanager.js instance to use *(required, or sdkInstace)*
+- `sdkInstance` set ready ec.sdk instance to use instead of datamanger *(required)*
 - `rabbitMQChannel` give a connected rabbitMQ channelWrapper from amqp-connection-manager connected to the publicAPI exchange
 - `redisConfig` add redis connectivity for caching ({ active: boolean, host: string, port: number, db: number, namespace: string })
 - `appendSource` (Boolean) flag to show/hide the `dmCacheHitFrom' flag in responses *(Default: false)*

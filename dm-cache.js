@@ -1,5 +1,4 @@
 const Cache = require('./lib/cache');
-const DataManagerWrapper = require('./lib/datamanager');
 const SDKWrapper = require('./lib/ec.sdk');
 const EventSourceAMQP = require('./lib/eventsource-amqp');
 
@@ -10,7 +9,6 @@ const namespaceSymbol = Symbol('namespace');
 
 class DMCache {
   constructor({
-    dataManagerInstance,
     sdkInstance,
     rabbitMQChannel,
     appendSource,
@@ -20,14 +18,10 @@ class DMCache {
     redisClient,
     namespace,
   }) {
-    if (!dataManagerInstance && !sdkInstance) {
-      throw new Error('missing either `dataManagerInstance` or `sdkInstance`');
+    if (!sdkInstance) {
+      throw new Error('missing sdkInstance');
     }
-    if (sdkInstance) {
-      this[dataManagerSymbol] = new SDKWrapper(sdkInstance);
-    } else {
-      this[dataManagerSymbol] = new DataManagerWrapper(dataManagerInstance);
-    }
+    this[dataManagerSymbol] = new SDKWrapper(sdkInstance);
     this.addRabbitMQChannel(rabbitMQChannel);
     if (appendSource) {
       this.appendSource = appendSource;
@@ -158,8 +152,8 @@ class DMCache {
         })
         .then(([entryResult, dmCacheHitFrom]) => {
           let linkedEntries = [];
-          if (levels > 1) {
-            linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
+          if (levels >= 1) {
+            linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult, levels);
           }
           if (dmCacheHitFrom === 'source') {
             this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
