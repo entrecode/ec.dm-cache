@@ -152,8 +152,8 @@ class DMCache {
         })
         .then(([entryResult, dmCacheHitFrom]) => {
           let linkedEntries = [];
-          if (levels > 1) {
-            linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult);
+          if (levels >= 1) {
+            linkedEntries = this[dataManagerSymbol].findLinkedEntries(entryResult, levels);
           }
           if (dmCacheHitFrom === 'source') {
             this[cacheSymbol].putEntry(key, modelTitle, validatedEntryID, entryResult, linkedEntries);
