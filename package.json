@@ -6,8 +6,7 @@
   "license": "none",
   "private": true,
   "scripts": {
-    "coverage": "NODE_ENV=testing istanbul cover _mocha -- --recursive -R dot && open ./coverage/lcov-report/index.html",
-    "test": "NODE_ENV=testing mocha -R spec --exit"
+    "test": "NODE_ENV=testing mocha --recursive -R spec --timeout 5000 --exit"
   },
   "repository": {
     "type": "git",
@@ -15,16 +14,15 @@
   },
   "author": "deyhle@entrecode.de",
   "devDependencies": {
-    "chai": "^4.2.0",
+    "chai": "^4.4.1",
     "chai-as-promised": "^7.1.1",
-    "istanbul": "^0.4.5",
-    "mocha": "^9.1.3",
-    "sinon": "^12.0.1",
-    "sinon-chai": "^3.5.0"
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1",
+    "sinon-chai": "^3.7.0"
   },
   "dependencies": {
-    "cache-manager": "^3.3.0",
-    "cache-manager-redis-store": "entrecode/node-cache-manager-redis-store#44e5df1440f8ce633f44b529d7fc27ff8698947c",
+    "cache-manager": "^4.1.0",
+    "cache-manager-redis-store": "entrecode/node-cache-manager-redis-store2",
     "halfred": "^2.0.0",
     "uuid": "^8.3.0"
   }
