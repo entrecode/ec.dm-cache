@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "cache-manager": "^4.1.0",
-    "cache-manager-redis-store": "entrecode/node-cache-manager-redis-store2",
+    "cache-manager-redis-store": "entrecode/node-cache-manager-redis-store",
     "halfred": "^2.0.0",
     "uuid": "^8.3.0"
   }
