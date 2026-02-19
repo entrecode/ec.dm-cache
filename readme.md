@@ -92,7 +92,7 @@ connectionManager.on('disconnect', () => logger.warn(' [!] disconnected (' + con
 return new Promise((resolve, reject) => {
   connectionManager.createChannel({
     setup(channel) {
-      return channel.assertExchange('publicAPI', 'topic', { durable: true })
+      return channel.checkExchange('publicAPI')
       .then(() => {
         resolve(channel);
       })

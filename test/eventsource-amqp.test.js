@@ -19,7 +19,7 @@ const channelMock = {
         queue: queueMock,
       });
     }
-    return Promise.reject(new Error('unallowed assertExchange parameters'));
+    return Promise.reject(new Error('unallowed assertQueue parameters'));
   }),
   consume: sinon.spy((queue, fn) => {
     if (queue !== queueMock) {
@@ -27,11 +27,11 @@ const channelMock = {
     }
     eventListener = fn;
   }),
-  assertExchange: sinon.spy((name, type, options) => {
-    if (name === 'publicAPI' && type === 'topic' && options.durable) {
+  checkExchange: sinon.spy((name) => {
+    if (name === 'publicAPI') {
       return Promise.resolve();
     }
-    return Promise.reject(new Error('unallowed assertExchange parameters'));
+    return Promise.reject(new Error('unallowed checkExchange parameters'));
   }),
   bindQueue(queue, exchange, key) {
     if (exchange !== 'publicAPI') {
@@ -123,7 +123,7 @@ describe('eventsource-amqp.js', () => {
   });
   beforeEach(() => {
     channelMock.assertQueue.resetHistory();
-    channelMock.assertExchange.resetHistory();
+    channelMock.checkExchange.resetHistory();
     channelMock.consume.resetHistory();
     channelWrapperMock.ack.resetHistory();
     eventSource.eventEmitter.removeAllListeners();
